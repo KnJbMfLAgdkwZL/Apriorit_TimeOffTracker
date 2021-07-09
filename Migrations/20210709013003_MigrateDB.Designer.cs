@@ -9,7 +9,7 @@ using TimeOffTracker.Model;
 
 namespace TimeOffTracker.Migrations
 {
-    [DbContext(typeof(masterContext))]
+    [DbContext(typeof(MasterContext))]
     [Migration("20210709013003_MigrateDB")]
     partial class MigrateDB
     {
