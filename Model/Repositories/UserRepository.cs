@@ -13,6 +13,12 @@ namespace TimeOffTracker.Model.Repositories
             await using var context = new MasterContext();
             return await context.Users.Where(u => u.Id == id).FirstOrDefaultAsync(token);
         }
+        
+        public async Task<User> SelectByLoginAsync(string login, CancellationToken token)
+        {
+            await using var context = new MasterContext();
+            return await context.Users.Where(u => u.Login == login).FirstOrDefaultAsync(token);
+        }
 
         public async Task<int> InsertAsync(UserDto userDto, CancellationToken token)
         {

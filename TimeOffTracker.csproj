@@ -22,6 +22,7 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.1.4" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.11.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,6 +34,10 @@
 
     <ItemGroup>
       <Folder Include="Middlewares" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Model\DTO\Auth.cs" />
     </ItemGroup>
 
     <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
