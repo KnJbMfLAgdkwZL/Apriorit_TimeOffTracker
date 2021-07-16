@@ -27,7 +27,7 @@ namespace TimeOffTracker.Controllers {
         public async Task<ActionResult<AuthDto>> Login([FromBody] AuthDto request, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             var userRepository = new UserRepository();
-            var user = await userRepository.SelectByLoginAsync(request.Login, token);
+            var user = await userRepository.SelectByLoginAndPasswordAsync(request.Login, request.Password, token);
 
             if (user == null) return Unauthorized();
             var jwtToken = GenerateJwt(user);
@@ -47,7 +47,10 @@ namespace TimeOffTracker.Controllers {
 
             var claims = new List<Claim> {
                 new (JwtRegisteredClaimNames.UniqueName, user.Login),
-                new (JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new (JwtRegisteredClaimNames.Email, user.Email),
+                
+                // ToDO role has to be from user.Role.Type. Doesn't work. Should be reviewed.
+                // And so we need to check role by RoleId (int) but not by Role.Type (string)...
                 new ("role", user.RoleId.ToString())
             };
 
