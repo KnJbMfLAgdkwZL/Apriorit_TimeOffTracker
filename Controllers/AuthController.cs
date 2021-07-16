@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,13 +17,11 @@ namespace TimeOffTracker.Controllers {
     [Route("")]
     [ApiController]
     public class AuthController : ControllerBase {
-
         private readonly IOptions<AuthOptions> _authOptions;
-        
-        public AuthController(IOptions<AuthOptions> authOptions) {
-            this._authOptions = authOptions;
-        }
-        
+        private Guid UserId => Guid.Parse(User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+        public AuthController(IOptions<AuthOptions> authOptions) { _authOptions = authOptions; }
+
         [Route("login")]
         [HttpPost]
         public async Task<ActionResult<AuthDto>> Login([FromBody] AuthDto request, CancellationToken token) {
@@ -36,22 +36,29 @@ namespace TimeOffTracker.Controllers {
                     access_token = jwtToken
                 }
             );
+        }
 
+        [Route("logged")]
+        [Authorize]
+        [HttpGet]
+        public async Task<ActionResult<UserDto>> Logged(CancellationToken cancellationToken) {
+            return Ok(new {
+                    result = "Done!"
+                }
+            );
         }
 
         private string GenerateJwt(User user) {
             var authParams = _authOptions.Value;
+            var userRoleRepository = new UserRoleRepository();
 
             var securityKey = authParams.GetSymmetricSecurityKey();
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim> {
-                new (JwtRegisteredClaimNames.UniqueName, user.Login),
-                new (JwtRegisteredClaimNames.Email, user.Email),
-                
-                // ToDO role has to be from user.Role.Type. Doesn't work. Should be reviewed.
-                // And so we need to check role by RoleId (int) but not by Role.Type (string)...
-                new ("role", user.RoleId.ToString())
+                new(JwtRegisteredClaimNames.UniqueName, user.Login),
+                new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new("role", userRoleRepository.SelectByIdAsync(user.RoleId, new CancellationToken()).Result.Type)
             };
 
 
