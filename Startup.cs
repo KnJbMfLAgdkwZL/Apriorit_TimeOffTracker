@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
+using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,52 +25,45 @@ namespace TimeOffTracker
         {
             services.AddControllers();
             services.AddControllersWithViews();
-            services.AddSpaStaticFiles(configuration => {
-                    configuration.RootPath = "ClientApp/build";
-                }
+
+            services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; }
             );
+
             services.AddSwaggerGen(c => { });
 
-            var authOptions = Configuration.GetSection("Auth").Get<AuthOptions>();
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => {
-                    options.RequireHttpsMetadata = false;   // let use Http instead Https
-                    options.TokenValidationParameters = new TokenValidationParameters {
+            var configurationSection = Configuration.GetSection("Auth");
+            services.Configure<AuthOptions>(configurationSection);
+
+            var authOptions = configurationSection.Get<AuthOptions>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false; // let use Http instead Https
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
                         ValidateIssuer = true,
                         ValidIssuer = authOptions.Issuer,
+
                         ValidateAudience = true,
                         ValidAudience = authOptions.Audience,
+
                         ValidateLifetime = true,
+
                         IssuerSigningKey = authOptions.GetSymmetricSecurityKey(), // HS256
                         ValidateIssuerSigningKey = true
                     };
                 }
             );
-            services.Configure<AuthOptions>(Configuration.GetSection("Auth"));
 
-            services.AddCors(options => {
-                options.AddDefaultPolicy(builder => {
-                    builder.AllowAnyOrigin().AllowAnyHeader();
-                });
+
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder => { builder.AllowAnyOrigin().AllowAnyHeader(); });
             });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseMiddleware<RequestHandlerMiddleware>();
-            app.UseMiddleware<ResponseHandlerMiddleware>();
-            app.UseMiddleware<ErrorHandlerMiddleware>();
-            app.UseSwagger();
-            app.UseSwaggerUI(c => { });
-            app.UseRouting();
-
-            app.UseCors();
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-            
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-            app.UseEndpoints(endpoints => { });
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -82,6 +74,23 @@ namespace TimeOffTracker
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 //app.UseHsts();
             }
+
+            app.UseMiddleware<RequestHandlerMiddleware>();
+            app.UseMiddleware<ResponseHandlerMiddleware>();
+            app.UseMiddleware<ErrorHandlerMiddleware>();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c => { });
+
+            app.UseRouting();
+            app.UseCors();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            //app.UseEndpoints(endpoints => { });
+
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();

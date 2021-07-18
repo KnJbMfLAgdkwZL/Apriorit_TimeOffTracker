@@ -254,7 +254,8 @@ namespace TimeOffTracker.Migrations
                 (N'New', N'Новая (New) Заявка создана в системе, но не получено еще ни одного утверждения/отказа', 0),
                 (N'In progress', N'Заявка получила минимум одно утверждение, но не была утверждена всеми людьми из цепочки менеджеров ', 0),
                 (N'Approved', N'Заявка была утверждена всеми людьми из цепочки менеджеров, отпуск считается утвержденным.', 0),
-                (N'Rejected', N'Заявка была отклонена кем-то из цепочки менеджеров. Отпуск не утвержден. Сотрудник может составить новую заявку. Заявка также считается отклоненной, если сотрудник лично отменил ее или изменил ее.', 0);
+                (N'Rejected', N'Заявка была отклонена кем-то из цепочки менеджеров. Отпуск не утвержден. Сотрудник может составить новую заявку. Заявка также считается отклоненной, если сотрудник лично отменил ее или изменил ее.', 0),
+                (N'Deleted', N'Заявка была Удалена пользователем до первой подписи', 0);
             ");
 
             migrationBuilder.Sql("insert into _public.User_Role (type, comments, deleted) values" +
@@ -278,6 +279,12 @@ namespace TimeOffTracker.Migrations
                     "Может просмотреть статистику своих заявок на отпуск', 0);"
                 );
             
+            migrationBuilder.Sql(@"insert into _public.[User] (email, login, first_name, second_name, password, role_id, deleted) values 
+                (N'admin@a.com', N'admin', N'admin', N'admin', N'admin', 1, 0),
+                (N'accounting@a.com', N'accounting', N'accounting', N'accounting', N'accounting', 2, 0),
+                (N'employee@a.com', N'employee', N'employee', N'employee', N'employee', 3, 0),
+                (N'manager@a.com', N'manager', N'manager', N'manager', N'manager', 4, 0);
+            ");
             
             
         }
