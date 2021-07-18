@@ -10,7 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="5.0.8" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.8" />
+        <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="5.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.0-preview.5.21301.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.0-preview.5.21301.9">
           <PrivateAssets>all</PrivateAssets>
@@ -18,14 +19,11 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.0-preview.5.21301.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.Design" Version="2.0.0-preview1-final" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.8">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="2.0.3" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.1.4" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.11.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,6 +35,10 @@
 
     <ItemGroup>
       <Folder Include="Middlewares" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Model\DTO\Auth.cs" />
     </ItemGroup>
 
     <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
@@ -64,7 +66,5 @@
             </ResolvedFileToPublish>
         </ItemGroup>
     </Target>
-
-    <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>
