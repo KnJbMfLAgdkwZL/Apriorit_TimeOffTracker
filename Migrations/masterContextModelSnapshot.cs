@@ -9,7 +9,7 @@ using TimeOffTracker.Model;
 namespace TimeOffTracker.Migrations
 {
     [DbContext(typeof(MasterContext))]
-    partial class masterContextModelSnapshot : ModelSnapshot
+    partial class MasterContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
