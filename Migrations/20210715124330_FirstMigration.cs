@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TimeOffTracker.Migrations
 {
-    public partial class FirstMigration : Migration
+    public partial class MigrateDB : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -230,6 +230,63 @@ namespace TimeOffTracker.Migrations
                 schema: "_public",
                 table: "User_Signature",
                 column: "user_id");
+            
+            
+            //Data initialization
+            migrationBuilder.Sql(@"insert into _public.Project_role_type (type, comments, deleted) values 
+                (N'No role', N'Нет роли', 0),
+                (N'Member', N'Член команды', 0),
+                (N'Dedicated', N'Мотивированный, преданный участник команды', 0),
+                (N'Representative', N'Представленный заказчику', 0);
+            ");
+            
+            migrationBuilder.Sql(@"insert into _public.Request_type (type, comments, deleted) values 
+                (N'Paid holiday', N'Оплачиваемый отпуск', 0),
+                (N'Admin (unpaid) planned', N'Административный (неоплачиваемый) плановый отпуск', 0),
+                (N'Admin (unpaid) force majeure', N'Административный (неоплачиваемый) отпуск по причине форс-мажора', 0),
+                (N'Study', N'Учебный отпуск', 0),
+                (N'Social', N'Социальный отпуск (по причине смерти близкого)', 0),
+                (N'Sick with docs', N'Больничный с больничным листом', 0),
+                (N'Sick without docs', N'Больничный без больничного листа', 0);
+            ");
+            
+            migrationBuilder.Sql(@"insert into _public.State_detail (type, comments, deleted) values 
+                (N'New', N'Новая (New) Заявка создана в системе, но не получено еще ни одного утверждения/отказа', 0),
+                (N'In progress', N'Заявка получила минимум одно утверждение, но не была утверждена всеми людьми из цепочки менеджеров ', 0),
+                (N'Approved', N'Заявка была утверждена всеми людьми из цепочки менеджеров, отпуск считается утвержденным.', 0),
+                (N'Rejected', N'Заявка была отклонена кем-то из цепочки менеджеров. Отпуск не утвержден. Сотрудник может составить новую заявку. Заявка также считается отклоненной, если сотрудник лично отменил ее или изменил ее.', 0),
+                (N'Deleted', N'Заявка была Удалена пользователем до первой подписи', 0);
+            ");
+
+            migrationBuilder.Sql("insert into _public.User_Role (type, comments, deleted) values" +
+                "(N'Admin', N'Администратор (Admin): встроенный пользователь\n" +
+                    "Регистрирует пользователя\n" +
+                    "определяет роль пользователя: Manager/Employee', 0)," +
+                                                              
+                "(N'Accounting', N'Бухгалтерия (Accounting): Роль пользователя Бухгалтерия - это обобщенная роль для нескольких людей.\n" +
+                    "Первым подписывает заявку на любой отпуск\n" +
+                    "Получает нотификацию о полностью подписанной заявке\n" +
+                    "Может в любой момент просмотреть статистику заявок', 0)," +
+                                                              
+                "(N'Employee', N'Сотрудник (Employee):\n" +
+                    "Может оставлять заявку на отпуск\n" +
+                    "Может просмотреть статистику своих заявок на отпуск', 0)," +
+                                                              
+                "(N'Manager', N'Менеджер (Manager):\n" +
+                    "Подписывает заявку на отпуск\n" +
+                    "Может в любой момент просмотреть статистику заявок\n" +
+                    "Может оставлять заявки на отпуск, как обычный сотрудник\n" +
+                    "Может просмотреть статистику своих заявок на отпуск', 0);"
+                );
+            
+            migrationBuilder.Sql(@"insert into _public.[User] (email, login, first_name, second_name, password, role_id, deleted) values 
+                (N'admin@a.com', N'admin', N'admin', N'admin', N'admin', 1, 0),
+                (N'accounting@a.com', N'accounting', N'accounting', N'accounting', N'accounting', 2, 0),
+                (N'employee@a.com', N'employee', N'employee', N'employee', N'employee', 3, 0),
+                (N'manager@a.com', N'manager', N'manager', N'manager', N'manager', 4, 0);
+            ");
+            
+            
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

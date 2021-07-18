@@ -11,11 +11,10 @@ namespace TimeOffTracker.Migrations
 {
     [DbContext(typeof(MasterContext))]
     [Migration("20210715124330_FirstMigration")]
-    partial class FirstMigration
+    partial class MigrateDB
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:Collation", "Cyrillic_General_CI_AS")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
