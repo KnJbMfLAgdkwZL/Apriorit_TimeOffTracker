@@ -9,11 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
-using TimeOffTracker.Model;
-using Microsoft.AspNetCore.Authorization;
-using TimeOffTracker.Model.DTO;
-
+using PagedList;
 
 namespace TimeOffTracker.Controllers
 {
@@ -22,20 +18,58 @@ namespace TimeOffTracker.Controllers
         ◦ Регистрирует пользователя
 	    ◦ определяет роль пользователя: Менеджер/Сотрудник.
     */
-
     [Route("[controller]/[action]")]
     [ApiController]
     [Produces("application/json")]
     [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
-        [HttpGet]
-        List<UserDto> GetUsers(UserDto filter = null)
+        /// <summary>
+        /// POST: http://localhost:5000/Admin/GetUsers?page=3&pageSize=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="filter">
+        /// Body
+        /// {
+        ///     "email": "",
+        ///     "login": "",
+        ///     "firstName": "",
+        ///     "secondName": ""
+        /// }
+        /// </param>
+        /// <param name="page">Текущая страница</param>
+        /// <param name="pageSize">Размер страницы</param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// {
+        ///     "page": 3,
+        ///     "pageSize": 2,
+        ///     "totalPages": 12,
+        ///     "users": [User1, User2, User3]
+        /// }
+        /// </returns>
+        [ProducesResponseType(200, Type = typeof(List<UserDto>))]
+        [ProducesResponseType(404)]
+        [HttpPost]
+        public async Task<ActionResult<string>> GetUsers([FromBody] UserDto filter, int page, int pageSize,
+            CancellationToken token)
         {
-            //	Если фильтр filter == null то вернуть всех
-            //	иначе вернуть похожие по указаному фильтру
-            //	предусмотреть старныцы по 10 елементов на страницу
-            return new List<UserDto>();
+            token.ThrowIfCancellationRequested();
+            var userRepository = new UserRepository();
+            var users = await userRepository.SelectAlldAsync(filter, token);
+            var totalPages = (int) Math.Ceiling((double) users.Count / pageSize);
+            var usersDto = users.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
+            var result = new
+            {
+                page = page,
+                pageSize = pageSize,
+                totalPages = totalPages,
+                users = usersDto,
+            };
+            return Ok(result);
         }
 
         [HttpGet]
@@ -81,6 +115,40 @@ namespace TimeOffTracker.Controllers
                 9. Администратор нажимает Сохранить. Роль пользователя поменялась. 
                 10. Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, которые ожидают его подтверждения автоматически считаются подтвержденными. Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
          */
-        
+
+        [ProducesResponseType(200, Type = typeof(UserDto))]
+        [ProducesResponseType(404)]
+        [HttpGet("get/{id:int}")]
+        public async Task<ActionResult<UserDto>> Get([FromRoute(Name = "id")] int id, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userRepository = new UserRepository();
+            var user = await userRepository.SelectByIdAsync(id, token);
+            if (user == null)
+            {
+                return NoContent();
+            }
+
+            var userDto = Converter.EntityToDto(user);
+            return Ok(userDto);
+        }
+
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPost("create")]
+        public async Task<ActionResult<int>> Create([FromBody] UserDto user, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userRoleRepository = new UserRoleRepository();
+            var userRole = await userRoleRepository.SelectByIdAsync(user.RoleId, token);
+            if (userRole == null)
+            {
+                return BadRequest("Wrong Role");
+            }
+
+            var userRepository = new UserRepository();
+            var r = await userRepository.InsertAsync(user, token);
+            return Ok(r);
+        }
     }
 }
