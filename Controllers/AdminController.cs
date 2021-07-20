@@ -13,11 +13,11 @@ using PagedList;
 
 namespace TimeOffTracker.Controllers
 {
-    /*
-     Администратор (Admin): встроенный пользователь
-        ◦ Регистрирует пользователя
-	    ◦ определяет роль пользователя: Менеджер/Сотрудник.
-    */
+    /// <summary>
+    /// Администратор (Admin): встроенный пользователь
+    ///     ◦ Регистрирует пользователя
+    ///     ◦ определяет роль пользователя: Менеджер/Сотрудник. 
+    /// </summary>
     [Route("[controller]/[action]")]
     [ApiController]
     [Produces("application/json")]
@@ -51,11 +51,11 @@ namespace TimeOffTracker.Controllers
         ///     "users": [User1, User2, User3]
         /// }
         /// </returns>
-        [ProducesResponseType(200, Type = typeof(List<UserDto>))]
+        [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpPost]
-        public async Task<ActionResult<string>> GetUsers([FromBody] UserDto filter, int page, int pageSize,
-            CancellationToken token)
+        public async Task<ActionResult<string>> GetUsers([FromBody] UserDto filter, [FromQuery(Name = "page")] int page,
+            [FromQuery(Name = "pageSize")] int pageSize, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var userRepository = new UserRepository();
@@ -72,55 +72,32 @@ namespace TimeOffTracker.Controllers
             return Ok(result);
         }
 
-        [HttpGet]
-        UserDto GetUserDetatil(int id)
-        {
-            
-            //	Вернуть пользователя
-            return new UserDto();
-        }
-
-        [HttpPatch]
-        void ModifyUserRole(UserDto user_whit_new_rol)
-        {
-            //	найти user по user_whit_new_rol.id
-            //	Изменить user.role = user_whit_new_rol.role
-            /*
-                Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, 
-                которые ожидают его подтверждения автоматически считаются подтвержденными. 
-                Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
-             */
-        }
-
-        [HttpPost]
-        int CreateUser(UserDto user)
-        {
-            //	Создать пользователя
-            return new User().Id;
-        }
-        /*
-         Сценарии использования
-            Управление пользователями 
-                1. Пользователь с ролью Администратор входит в систему “Отпуск”, используя предопределенные логин-пароль.
-                2. Администратор видит список всех пользователей
-                3. Администратор.может зарегистрировать нового пользователя 
-                4. Администратор может найти необходимого пользователя по имени-фамилии, или емейлу. 
-                5. Для каждого пользователя показана следующая информация: 
-                    a. Имя-фамилия
-                    b. логин
-                    c. Емейл
-                    d. Роль в системе.
-                6. Администратор нажимает Редактировать  (Edit). 
-                7. Поле задания роли становится активным. 
-                8. Администратор выбирает роль из выпадающего списка: Сотрудник (Employee) или Менеджер (Manager).
-                9. Администратор нажимает Сохранить. Роль пользователя поменялась. 
-                10. Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, которые ожидают его подтверждения автоматически считаются подтвержденными. Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
-         */
-
+        /// <summary>
+        /// GET: http://localhost:5000/Admin/GetUserDetatil?id=2
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id">Ид пользователя</param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// {
+        ///     "id": 7,
+        ///     "email": "jeufrauterolo-9726@yopmail.com",
+        ///     "login": "splendidwell",
+        ///     "firstName": "Ali",
+        ///     "secondName": "Savely",
+        ///     "password": "x4eyZI3vSs",
+        ///     "roleId": 3,
+        ///     "deleted": false
+        /// }
+        /// </returns>
         [ProducesResponseType(200, Type = typeof(UserDto))]
         [ProducesResponseType(404)]
-        [HttpGet("get/{id:int}")]
-        public async Task<ActionResult<UserDto>> Get([FromRoute(Name = "id")] int id, CancellationToken token)
+        [HttpGet]
+        public async Task<ActionResult<UserDto>> GetUserDetatil([FromQuery(Name = "id")] int id,
+            CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var userRepository = new UserRepository();
@@ -134,10 +111,30 @@ namespace TimeOffTracker.Controllers
             return Ok(userDto);
         }
 
+        /// <summary>
+        /// POST: http://localhost:5000/Admin/CreateUser
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="user">
+        /// Body
+        /// {
+        ///     "email": "JohnDoe@gmail.com",
+        ///     "login": "john123",
+        ///     "firstName": "John",
+        ///     "secondName": "Doe",
+        ///     "password": "cJrhIdvN7O",
+        ///     "roleId": 1
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns>user.Id</returns>
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
-        [HttpPost("create")]
-        public async Task<ActionResult<int>> Create([FromBody] UserDto user, CancellationToken token)
+        [HttpPost]
+        public async Task<ActionResult<int>> CreateUser([FromBody] UserDto user, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var userRoleRepository = new UserRoleRepository();
@@ -151,5 +148,35 @@ namespace TimeOffTracker.Controllers
             var r = await userRepository.InsertAsync(user, token);
             return Ok(r);
         }
+
+        [HttpPatch]
+        void ModifyUserRole(UserDto user_whit_new_rol)
+        {
+            //	найти user по user_whit_new_rol.id
+            //	Изменить user.role = user_whit_new_rol.role
+            /*
+                Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, 
+                которые ожидают его подтверждения автоматически считаются подтвержденными. 
+                Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
+             */
+        }
+        /*
+         Сценарии использования
+            Управление пользователями 
+                //1. Пользователь с ролью Администратор входит в систему “Отпуск”, используя предопределенные логин-пароль.
+                //2. Администратор видит список всех пользователей
+                3. Администратор.может зарегистрировать нового пользователя 
+                //4. Администратор может найти необходимого пользователя по имени-фамилии, или емейлу. 
+                5. Для каждого пользователя показана следующая информация: 
+                    a. Имя-фамилия
+                    b. логин
+                    c. Емейл
+                    d. Роль в системе.
+                6. Администратор нажимает Редактировать  (Edit). 
+                7. Поле задания роли становится активным. 
+                8. Администратор выбирает роль из выпадающего списка: Сотрудник (Employee) или Менеджер (Manager).
+                9. Администратор нажимает Сохранить. Роль пользователя поменялась. 
+                10. Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, которые ожидают его подтверждения автоматически считаются подтвержденными. Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
+         */
     }
 }

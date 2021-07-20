@@ -26,7 +26,7 @@ namespace TimeOffTracker.Model.Repositories
         public async Task<User> SelectByIdAsync(int id, CancellationToken token)
         {
             await using var context = new MasterContext();
-            return await context.Users.Where(u => u.Id == id).FirstOrDefaultAsync(token);
+            return await context.Users.Where(u => u.Id == id && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
         public async Task<User> SelectByLoginAsync(string login, CancellationToken token)
