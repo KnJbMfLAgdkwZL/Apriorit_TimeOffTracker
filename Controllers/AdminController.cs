@@ -75,6 +75,7 @@ namespace TimeOffTracker.Controllers
         [HttpGet]
         UserDto GetUserDetatil(int id)
         {
+            
             //	Вернуть пользователя
             return new UserDto();
         }
