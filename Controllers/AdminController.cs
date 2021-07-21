@@ -198,7 +198,7 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
-        /// GET: /Admin/ModifyUserRole
+        /// PATCH: /Admin/ModifyUserRole
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -212,7 +212,7 @@ namespace TimeOffTracker.Controllers
         /// }
         /// </param>
         /// <param name="token"></param>
-        /// <returns>true or false</returns>
+        /// <returns>true</returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpPatch]
@@ -246,7 +246,7 @@ namespace TimeOffTracker.Controllers
             /*
                 Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.
              */
-            
+
             if (role.Id == 3 && user.RoleId == 4) // Если  роль пользователя поменялась с Менеджер(4) на Сотрудник(3)
             {
                 //То нужно подтвердить все его существующие активные заявки на отпуск которые он должен подписать
