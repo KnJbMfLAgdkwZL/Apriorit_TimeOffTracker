@@ -3,15 +3,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using TimeOffTracker.Model.DTO;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PagedList.EntityFramework;
 
 namespace TimeOffTracker.Model.Repositories
 {
     public class UserRepository
     {
-        public async Task<List<User>> SelectAlldAsync(UserDto filter, CancellationToken token)
+        public async Task<List<User>> SelectAllAsync(UserDto filter, CancellationToken token)
         {
             await using var context = new MasterContext();
             return await context.Users.Where(u =>
@@ -32,13 +30,19 @@ namespace TimeOffTracker.Model.Repositories
         public async Task<User> SelectByLoginAsync(string login, CancellationToken token)
         {
             await using var context = new MasterContext();
-            return await context.Users.Where(u => u.Login == login).FirstOrDefaultAsync(token);
+            return await context.Users.Where(u => u.Login == login && u.Deleted == false).FirstOrDefaultAsync(token);
+        }
+
+        public async Task<User> SelectByEmailAsync(string email, CancellationToken token)
+        {
+            await using var context = new MasterContext();
+            return await context.Users.Where(u => u.Email == email && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
         public async Task<User> SelectByLoginAndPasswordAsync(string login, string password, CancellationToken token)
         {
             await using var context = new MasterContext();
-            return await context.Users.Where(u => u.Login == login && u.Password == password)
+            return await context.Users.Where(u => u.Login == login && u.Password == password && u.Deleted == false)
                 .FirstOrDefaultAsync(token);
         }
 
@@ -49,6 +53,21 @@ namespace TimeOffTracker.Model.Repositories
             await context.Users.AddAsync(user, token);
             await context.SaveChangesAsync(token);
             return user.Id;
+        }
+
+        public async Task<bool> UpdateRoleIdAsync(int userId, int roleId, CancellationToken token)
+        {
+            await using var context = new MasterContext();
+            var user = await SelectByIdAsync(userId, token);
+            if (user == null)
+            {
+                return false;
+            }
+
+            user.RoleId = roleId;
+            context.Users.Update(user);
+            await context.SaveChangesAsync(token);
+            return true;
         }
     }
 }

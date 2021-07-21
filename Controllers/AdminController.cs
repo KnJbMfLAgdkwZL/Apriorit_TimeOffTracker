@@ -25,7 +25,7 @@ namespace TimeOffTracker.Controllers
     public class AdminController : ControllerBase
     {
         /// <summary>
-        /// POST: http://localhost:5000/Admin/GetUsers?page=3&pageSize=10
+        /// POST: /Admin/GetUsers?page=3&pageSize=10
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -59,7 +59,7 @@ namespace TimeOffTracker.Controllers
         {
             token.ThrowIfCancellationRequested();
             var userRepository = new UserRepository();
-            var users = await userRepository.SelectAlldAsync(filter, token);
+            var users = await userRepository.SelectAllAsync(filter, token);
             var totalPages = (int) Math.Ceiling((double) users.Count / pageSize);
             var usersDto = users.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
             var result = new
@@ -73,7 +73,7 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
-        /// GET: http://localhost:5000/Admin/GetUserDetatil?id=2
+        /// GET: /Admin/GetUserDetail?id=7
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -96,7 +96,7 @@ namespace TimeOffTracker.Controllers
         [ProducesResponseType(200, Type = typeof(UserDto))]
         [ProducesResponseType(404)]
         [HttpGet]
-        public async Task<ActionResult<UserDto>> GetUserDetatil([FromQuery(Name = "id")] int id,
+        public async Task<ActionResult<UserDto>> GetUserDetail([FromQuery(Name = "id")] int id,
             CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
@@ -112,7 +112,7 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
-        /// POST: http://localhost:5000/Admin/CreateUser
+        /// POST: /Admin/CreateUser
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -137,6 +137,7 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<int>> CreateUser([FromBody] UserDto user, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+
             var userRoleRepository = new UserRoleRepository();
             var userRole = await userRoleRepository.SelectByIdAsync(user.RoleId, token);
             if (userRole == null)
@@ -145,38 +146,118 @@ namespace TimeOffTracker.Controllers
             }
 
             var userRepository = new UserRepository();
+            var userLogin = await userRepository.SelectByLoginAsync(user.Login, token);
+            if (userLogin != null)
+            {
+                return BadRequest("Login already exists");
+            }
+
+            var userEmail = await userRepository.SelectByEmailAsync(user.Email, token);
+            if (userEmail != null)
+            {
+                return BadRequest("Email already exists");
+            }
+
             var r = await userRepository.InsertAsync(user, token);
             return Ok(r);
         }
 
-        [HttpPatch]
-        void ModifyUserRole(UserDto user_whit_new_rol)
+        /// GET: /Admin/GetUserRoles
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>
+        /// [
+        ///     {
+        ///         "id": 1,
+        ///         "type": "Admin",
+        ///         "comments": "Администратор",
+        ///         "deleted": false
+        ///     },
+        ///     {
+        ///         "id": 2,
+        ///         "type": "Accounting",
+        ///         "comments": "Бухгалтерия",
+        ///         "deleted": false
+        ///     },
+        /// ]
+        /// </returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpGet]
+        public async Task<ActionResult<List<UserRole>>> GetUserRoles(CancellationToken token)
         {
-            //	найти user по user_whit_new_rol.id
-            //	Изменить user.role = user_whit_new_rol.role
-            /*
-                Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, 
-                которые ожидают его подтверждения автоматически считаются подтвержденными. 
-                Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
-             */
+            token.ThrowIfCancellationRequested();
+            var userRoleRepository = new UserRoleRepository();
+            var userRoles = await userRoleRepository.SelectAllAsync(token);
+            var userRolesDto = userRoles.Select(Converter.EntityToDto);
+            return Ok(userRolesDto);
         }
-        /*
-         Сценарии использования
-            Управление пользователями 
-                //1. Пользователь с ролью Администратор входит в систему “Отпуск”, используя предопределенные логин-пароль.
-                //2. Администратор видит список всех пользователей
-                3. Администратор.может зарегистрировать нового пользователя 
-                //4. Администратор может найти необходимого пользователя по имени-фамилии, или емейлу. 
-                5. Для каждого пользователя показана следующая информация: 
-                    a. Имя-фамилия
-                    b. логин
-                    c. Емейл
-                    d. Роль в системе.
-                6. Администратор нажимает Редактировать  (Edit). 
-                7. Поле задания роли становится активным. 
-                8. Администратор выбирает роль из выпадающего списка: Сотрудник (Employee) или Менеджер (Manager).
-                9. Администратор нажимает Сохранить. Роль пользователя поменялась. 
-                10. Если  роль пользователя поменялась с Менеджер на Сотрудник, все существующие активные заявки на отпуск, которые ожидают его подтверждения автоматически считаются подтвержденными. Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.  
-         */
+
+        /// <summary>
+        /// GET: /Admin/ModifyUserRole
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// } 
+        /// </summary>
+        /// <param name="userDto">
+        /// Body
+        /// {
+        ///     "id": 3,
+        ///     "roleId": 3
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns>true or false</returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpPatch]
+        public async Task<ActionResult<bool>> ModifyUserRole([FromBody] UserDto userDto, CancellationToken token)
+        {
+            //Этот метод нуждается в тестировании
+            //У нас пока нет функционала добавления заявок. У меня нет данных в таблице что бы протестировать смену роли.
+
+            //userDto.Id ид юзера
+            //userDto.RoleId новая роль
+
+            var userRoleRepository = new UserRoleRepository();
+            var role = await userRoleRepository.SelectByIdAsync(userDto.RoleId, token);
+            if (role == null) // роль не найдена в системе
+            {
+                return BadRequest("Wrong User.RoleId. Only 3 or 4");
+            }
+
+            if (role.Id != 3 && role.Id != 4) // по спецификации админ меняет роли только с 3 на 4 и обратно
+            {
+                return BadRequest("Wrong User.RoleId. Only 3 or 4");
+            }
+
+            var userRepository = new UserRepository();
+            var user = await userRepository.SelectByIdAsync(userDto.Id, token);
+            if (user == null) // пользоваель не найден в системе
+            {
+                return BadRequest("Wrong User.Id");
+            }
+
+            /*
+                Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.
+             */
+            
+            if (role.Id == 3 && user.RoleId == 4) // Если  роль пользователя поменялась с Менеджер(4) на Сотрудник(3)
+            {
+                //То нужно подтвердить все его существующие активные заявки на отпуск которые он должен подписать
+                var userSignatureRepository = new UserSignatureRepository();
+                var r1 = await userSignatureRepository.ConfirmOrRemoveAllManagerSignaturesAsync(user.Id, token);
+            }
+
+            //Обновляем роль пользователя
+            var r = await userRepository.UpdateRoleIdAsync(user.Id, role.Id, token);
+
+            return Ok(r);
+        }
     }
 }
