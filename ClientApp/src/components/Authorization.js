@@ -1,22 +1,139 @@
-﻿import React, { Component } from "react";
-import './Auth.css'
+﻿import React, {Component} from 'react';
+import Avatar from '@material-ui/core/Avatar';
+import Button from '@material-ui/core/Button';
+import CssBaseline from '@material-ui/core/CssBaseline';
+import TextField from '@material-ui/core/TextField';
+import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
+import Typography from '@material-ui/core/Typography';
+import Container from '@material-ui/core/Container';
+import {AuthService} from "../Services/AuthService";
+import Cookies from 'js-cookie';
+import '../custom.css'
 
-export class Authorization extends Component{
+const URL = "http://localhost:5000/"
+
+export class Authorization extends Component {
+
     static displayName = Authorization.name;
-    
+
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            textFieldLoginValue: "",
+            textFieldPasswordValue: "",
+            errorState: false
+        };
+
+        this._handleTextFiledLoginChange = this._handleTextFiledLoginChange.bind(this);
+        this._handleTextFiledPasswordChange = this._handleTextFiledPasswordChange.bind(this);
+        this._sendPostRequest = this._sendPostRequest.bind(this);
+        this._logOut = this._logOut.bind(this);
+    }
+
+    async _sendPostRequest() {
+        const requestOptions = {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({login: this.state.textFieldLoginValue, password: this.state.textFieldPasswordValue}),
+            redirect: 'manual'
+        };
+        await fetch(URL + 'api/auth', requestOptions)
+            .then(async response => {
+                if (response.status === 200) {
+                    const token = await response.json().then(token => token);
+                    Cookies.set("token", token);
+                    window.location.reload();
+                } else {
+                    this.setState({
+                        errorState: true
+                    });
+                }
+            })
+            .catch(error => console.error(error));
+    }
+
+    _handleTextFiledLoginChange(e) {
+        this.setState({
+            textFieldLoginValue: e.target.value
+        });
+    }
+
+    _handleTextFiledPasswordChange(e) {
+        this.setState({
+            textFieldPasswordValue: e.target.value
+        });
+    }
+
+    _logOut() {
+        AuthService.logOut();
+        window.location.reload();
+    }
+
     render() {
         return (
-            <div>
-                <main class="form-signin">
-                    <form>
-                            <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
-                            <input type="email" class="form-control" id="floatingInput" placeholder="name@example.com"/>                    
-                            <input type="password" class="form-control" id="floatingPassword" placeholder="Password"/>
-                            <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>             
+            <Container component="main" maxWidth="xs">
+                <CssBaseline/>
+                <div>
+                    <Avatar>
+                        <LockOutlinedIcon/>
+                    </Avatar>
+                    <Typography component="h1" variant="h5">
+                        Sign in {this.state.errorState && "again please..."}
+                    </Typography>
+                    <form noValidate>
+                        {!AuthService.isLogged() &&
+                        <TextField
+                            error={this.state.errorState}
+                            value={this.state.textFieldLoginValue}
+                            onChange={this._handleTextFiledLoginChange}
+                            margin="normal"
+                            required
+                            fullWidth
+                            id="login"
+                            label="Login"
+                            name="login"
+                            autoComplete="login"
+                            autoFocus
+                        />
+                        }
+                        {!AuthService.isLogged() &&
+                        <TextField
+                            error={this.state.errorState}
+                            value={this.state.textFieldPasswordValue}
+                            onChange={this._handleTextFiledPasswordChange}
+                            margin="normal"
+                            required
+                            fullWidth
+                            name="password"
+                            label="Password"
+                            type="password"
+                            id="password"
+                        />
+                        }
+                        {!AuthService.isLogged() &&
+                        <Button
+                            onClick={this._sendPostRequest}
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            className="mt-1">
+                            Sign In
+                        </Button>
+                        }
+                        {AuthService.isLogged() &&
+                        <Button
+                            onClick={this._logOut}
+                            fullWidth
+                            variant="outlined"
+                            color="primary"
+                            className="mt-2">
+                            Log out
+                        </Button>
+                        }
                     </form>
-                </main>
-
-            </div>
+                </div>
+            </Container>
         );
     }
 }
