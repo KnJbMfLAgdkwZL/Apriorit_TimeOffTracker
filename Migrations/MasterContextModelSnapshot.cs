@@ -97,13 +97,13 @@ namespace TimeOffTracker.Migrations
                         .HasName("Request_pk")
                         .IsClustered(false);
 
-                    b.HasIndex("ProjectRoleTypeId");
+                    b.HasIndex(new[] { "ProjectRoleTypeId" }, "IX_Request_project_role_type_id");
 
-                    b.HasIndex("RequestTypeId");
+                    b.HasIndex(new[] { "RequestTypeId" }, "IX_Request_request_type_id");
 
-                    b.HasIndex("StateDetailId");
+                    b.HasIndex(new[] { "StateDetailId" }, "IX_Request_state_detail_id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex(new[] { "UserId" }, "IX_Request_user_id");
 
                     b.ToTable("Request", "_public");
                 });
@@ -223,7 +223,13 @@ namespace TimeOffTracker.Migrations
                         .HasName("User_pk")
                         .IsClustered(false);
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex(new[] { "RoleId" }, "IX_User_role_id");
+
+                    b.HasIndex(new[] { "Email" }, "User_email_uindex")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "Login" }, "User_login_uindex")
+                        .IsUnique();
 
                     b.ToTable("User", "_public");
                 });
@@ -291,9 +297,9 @@ namespace TimeOffTracker.Migrations
                         .HasName("User_Signature_pk")
                         .IsClustered(false);
 
-                    b.HasIndex("RequestId");
+                    b.HasIndex(new[] { "RequestId" }, "IX_User_Signature_request_id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex(new[] { "UserId" }, "IX_User_Signature_user_id");
 
                     b.ToTable("User_Signature", "_public");
                 });

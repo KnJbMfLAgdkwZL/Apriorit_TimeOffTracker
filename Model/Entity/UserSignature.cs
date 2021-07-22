@@ -1,4 +1,7 @@
-﻿namespace TimeOffTracker.Model
+﻿using System;
+using System.Collections.Generic;
+
+namespace TimeOffTracker.Model
 {
     public partial class UserSignature
     {
