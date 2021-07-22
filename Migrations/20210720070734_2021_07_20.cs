@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TimeOffTracker.Migrations
 {
-    public partial class MigrateDB : Migration
+    public partial class _2021_07_20 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -218,6 +218,20 @@ namespace TimeOffTracker.Migrations
                 schema: "_public",
                 table: "User",
                 column: "role_id");
+
+            migrationBuilder.CreateIndex(
+                name: "User_email_uindex",
+                schema: "_public",
+                table: "User",
+                column: "email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "User_login_uindex",
+                schema: "_public",
+                table: "User",
+                column: "login",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_User_Signature_request_id",

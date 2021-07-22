@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using TimeOffTracker.Config;
@@ -67,6 +67,14 @@ namespace TimeOffTracker.Model
                     .IsClustered(false);
 
                 entity.ToTable("Request", "_public");
+
+                entity.HasIndex(e => e.ProjectRoleTypeId, "IX_Request_project_role_type_id");
+
+                entity.HasIndex(e => e.RequestTypeId, "IX_Request_request_type_id");
+
+                entity.HasIndex(e => e.StateDetailId, "IX_Request_state_detail_id");
+
+                entity.HasIndex(e => e.UserId, "IX_Request_user_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
@@ -173,6 +181,14 @@ namespace TimeOffTracker.Model
 
                 entity.ToTable("User", "_public");
 
+                entity.HasIndex(e => e.RoleId, "IX_User_role_id");
+
+                entity.HasIndex(e => e.Email, "User_email_uindex")
+                    .IsUnique();
+
+                entity.HasIndex(e => e.Login, "User_login_uindex")
+                    .IsUnique();
+
                 entity.Property(e => e.Id).HasColumnName("id");
 
                 entity.Property(e => e.Deleted).HasColumnName("deleted");
@@ -244,6 +260,10 @@ namespace TimeOffTracker.Model
                     .IsClustered(false);
 
                 entity.ToTable("User_Signature", "_public");
+
+                entity.HasIndex(e => e.RequestId, "IX_User_Signature_request_id");
+
+                entity.HasIndex(e => e.UserId, "IX_User_Signature_user_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
