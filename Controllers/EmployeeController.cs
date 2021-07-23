@@ -10,93 +10,114 @@ using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
 using PagedList;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Controllers
 {
-    /*
-    Сотрудник (Employee):. 
-	    ◦ Может оставлять заявку на отпуск
-	    ◦ Может просмотреть статистику своих заявок на отпуск
-    Менеджер (Manager):
-	    ◦ Может оставлять заявки на отпуск, как обычный сотрудник 
-	    ◦ Может просмотреть статистику своих заявок на отпуск
-     */
+    /// <summary>
+    /// Сотрудник (Employee): 
+    ///     ◦ Может оставлять заявку на отпуск
+    ///     ◦ Может просмотреть статистику своих заявок на отпуск
+    /// Менеджер (Manager):
+    ///     ◦ Может оставлять заявки на отпуск, как обычный сотрудник 
+    ///     ◦ Может просмотреть статистику своих заявок на отпуск
+    /// </summary>
     [Route("[controller]/[action]")]
     [ApiController]
     [Produces("application/json")]
     [Authorize(Roles = "Employee, Manager")]
-    public class EmployerController : ControllerBase
+    public class EmployeeController : ControllerBase
     {
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpPost]
-        int СreateRequest(RequestDto request)
+        public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto request, CancellationToken token)
         {
-            /*
-             Создание заявки
-                1. Сотрудник компании может оставить заявку на следующие типы отпусков: 
-                    a. Оплачиваемый отпуск
-                    b. Административный (неоплачиваемый) плановый отпуск
-                    c. Административный (неоплачиваемый) отпуск по причине форс-мажора (день в день)
-                    d. Учебный отпуск
-                    e. Социальный отпуск (по причине смерти близкого)
-                    f. Больничный с больничным листом
-                    g. Больничный без больничного листа
-                2.  При создании заявки сотрудник указывает следующую информацию: 
-                    a. Тип отпуска
-                    b. Даты
-                    c. (для больничных) Полный день или полдня
-                    d. Причину взятия отпуска 
-                    e. Свою проектную роль
-                    f. Участие в проекте (член команды, дедикейтид, представленный заказчику, или нет)
-                    g. (в случае необходимости) Список людей с ролью Менеджер, которые должны подписать отпуск, в соответствии с типом отпуска,  проектной ролью, участием в проекте и корпоративной политикой. 
-                3. Сотрудник может дублировать уже существующую заявку на отпуск в любом статусе.
-                4. Система не проверяет количество оставшихся/израсходованных дней отпуска, даты прохождения ИС и прочее. Эти проверки вручную осуществляет бухгалтерия на первом этапе утверждения заявки. 
-             */
+            token.ThrowIfCancellationRequested();
 
-            //	Бугалтерия зачит всегда дожна быть в списке подписчиков
-            //	Не понятно при каком типе отпуска нужно указывать подписчиков?
-            //	отправлять на почту - это во фронте делать наверно надо или тут же?
-
+            var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            request.UserId = int.Parse(userId);
+            request.StateDetailId = (int) StateDetails.New;
             /*
-            Утверждение заявки менеджерами
-            Заявки бывают следующих типов:  
-                • Заявки утверждаемые цепочкой менеджеров, зависящей от проектной роли (должности) человека и его участием в проекте: 
-                    ◦ Очередной оплачиваемый отпуск (Paid leave)
-                    ◦ Административный (неоплачиваемый) отпуск  (Administrative unpaid leave)
-                    ◦ Учебный отпуск (Study leave)
-                • Заявка утверждаемые только бухгалтерией:  
-                    ◦ Административный отпуск по причине форс-мажора (Force majeure administrative leave)
-                    ◦ Социальный отпуск (Social leave)
-                • Заявка на больничный, которая также утверждается только бухгалтерией:  
-                    ◦ Больничный с больничным листом (Sick leave with documents)
-                    ◦ Больничный без больничного листа (Sick leave without documents)
+                "dateTimeFrom": "2021-07-23T04:42:16.523Z",
+                "dateTimeTo": "2021-07-23T04:42:16.523Z",
             */
-            /*
-                    
-             Сценарии использования: Создание заявки на отпуск
-                1. Пользователь входит в систему “Отпуск”, используя свои логин-пароль. 
-                2. Пользователь нажимает Создать заявку. 
-                3. Пользователь выбирает следующее: 
-                    a. Тип отпуска 
-                    b. Даты 
-                    c. (для больничных) полдня или целый день
-                    d. Причина взятия отпуска/комментарий (поле обязательное для некоторых видов отпусков, см. Описание контролов). 
-                4. В случае, если тип отпуск требует утверждения у нескольких людей (например, очередной оплачиваемый отпуск), пользователь выбирает следующее: 
-                    a. Проектная роль
-                    b. Тип участия  в проекте
-                    c. Люди, которые должны утвердить отпуск.   
-                5. Если все заполнено правильно, создается заявка на отпуск. 
-                6. Соответствующее сообщение отправляется на почту бухгалтерии. После утверждения заявки на отпуск бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
-             */
+
+            if (string.IsNullOrEmpty(request.Reason))
+            {
+                return BadRequest("Reason not set");
+            }
+
+            if (Enum.IsDefined(typeof(RequestTypes), request.RequestTypeId))
+            {
+                return BadRequest("Wrong RequestType");
+            }
+
+            var managers = new List<RequestTypes>()
+            {
+                RequestTypes.PaidLeave,
+                RequestTypes.AdministrativeUnpaidLeave,
+                RequestTypes.StudyLeave
+            };
+            if (managers.Contains((RequestTypes) request.RequestTypeId))
+            {
+                if (request.UserSignatureDto.Count <= 0)
+                {
+                    return BadRequest("Manager not set");
+                }
+
+                if (Enum.IsDefined(typeof(ProjectRoleTypes), request.RequestTypeId))
+                {
+                    return BadRequest("Wrong ProjectRoleType");
+                }
+
+                if (string.IsNullOrEmpty(request.ProjectRoleComment))
+                {
+                    return BadRequest("ProjectRoleComment not set");
+                }
+            }
+
+            var accountingOnly = new List<RequestTypes>()
+            {
+                RequestTypes.AdministrativeUnpaidLeave,
+                RequestTypes.SocialLeave,
+                RequestTypes.SickLeaveWithDocuments,
+                RequestTypes.SickLeaveWithoutDocuments
+            };
+            if (accountingOnly.Contains((RequestTypes) request.RequestTypeId))
+            {
+            }
+
+            var userRepository = new UserRepository();
+            var accounting = await userRepository.SelectAccounting(token);
+            request.UserSignatureDto.Add(new UserSignatureDto()
+            {
+                Approved = false,
+                UserId = accounting.Id,
+                Deleted = false,
+                NInQueue = 0
+                //Id = 1
+                //RequestId = 10
+            });
+/*      
+        Цепочка менеджеров, зависящей от проектной роли (должности) человека и его участием в проекте: 
+            1 Paid leave, Очередной оплачиваемый отпуск
+            2 Administrative unpaid leave, Административный (неоплачиваемый) отпуск
+            4 Study leave, Учебный отпуск
+        Только Бухгалтерия:  
+            3 Force majeure administrative leave, Административный отпуск по причине форс-мажора
+            5 Social leave, Социальный отпуск (по причине смерти близкого)
+            6 Sick leave with documents, Больничный с больничным листом
+            7 Sick leave without documents, Больничный без больничного листа
+*/ /*            
+        2. При создании заявки сотрудник указывает следующую информацию: 
+            b. Даты c. (для больничных) Полный день или полдня
+
+        6. Соответствующее сообщение отправляется на почту бухгалтерии. После утверждения заявки на отпуск
+            бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
+*/
 
 
-            //	Наши типы отпусков в бд RequestType:
-            //		1,Paid holiday,Оплачиваемый отпуск,false
-            //		2,Admin (unpaid) planned,Административный (неоплачиваемый) плановый отпуск,false
-            //		3,Admin (unpaid) force majeure,Административный (неоплачиваемый) отпуск по причине форс-мажора,false
-            //		4,Study,Учебный отпуск,false
-            //		5,Social,Социальный отпуск (по причине смерти близкого),false
-            //		6,Sick with docs,Больничный с больничным листом,false
-            //		7,Sick without docs,Больничный без больничного листа,false
             return request.Id;
         }
 
@@ -158,6 +179,7 @@ namespace TimeOffTracker.Controllers
         int CopyRequest(int id)
         {
             /*
+            3. Сотрудник может дублировать уже существующую заявку на отпуск в любом статусе.
             Сценарии использования:Дублирование заявки на отпуск
                 1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
                 2. Пользователь видит список своих заявок.
@@ -220,7 +242,9 @@ namespace TimeOffTracker.Controllers
         {
             //	Получить количество дней которые полил работник з начала года до текушей даты
         }
-        //	Наверно нужно создать еще свои пользовательские ошибки? И кидать когда нужно, что бы потом обработчик ошибок в midelwares их записал в лог и выдал потом нужный Http статус?
+        //	Наверно нужно создать еще свои пользовательские ошибки?
+        //  И кидать когда нужно, что бы потом обработчик ошибок в midelwares их записал в лог
+        //  и выдал потом нужный Http статус?
 
         /*
          Ошибки

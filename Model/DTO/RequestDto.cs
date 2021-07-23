@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace TimeOffTracker.Model.DTO
 {
@@ -13,5 +14,6 @@ namespace TimeOffTracker.Model.DTO
         public int StateDetailId { get; set; }
         public DateTime DateTimeFrom { get; set; }
         public DateTime DateTimeTo { get; set; }
+        public virtual List<UserSignatureDto> UserSignatureDto { get; set; }
     }
 }

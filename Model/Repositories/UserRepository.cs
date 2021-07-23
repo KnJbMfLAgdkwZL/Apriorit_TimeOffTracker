@@ -69,5 +69,11 @@ namespace TimeOffTracker.Model.Repositories
             await context.SaveChangesAsync(token);
             return true;
         }
+
+        public async Task<User> SelectAccounting(CancellationToken token)
+        {
+            await using var context = new MasterContext();
+            return await context.Users.Where(u => u.RoleId == 2 && u.Deleted == false).FirstOrDefaultAsync(token);
+        }
     }
 }
