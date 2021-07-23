@@ -1,14 +1,13 @@
-﻿import Cookies from 'js-cookie'
-import jwt_decode from "jwt-decode"
+﻿import jwt_decode from "jwt-decode"
 
 export class AuthService {
     static isLogged() {
-        return Cookies.get("token") !== undefined;
+        return localStorage.getItem("token") !== null;
     }
 
     static logOut() {
         try {
-            Cookies.remove('token');
+            localStorage.removeItem("token");
         } catch (e) {
             console.error(e);
         }
