@@ -11,7 +11,7 @@ namespace TimeOffTracker.Model.Repositories
     {
         public async Task<List<User>> SelectAllAsync(UserDto filter, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             return await context.Users.Where(u =>
                 EF.Functions.Like(u.Email, $"%{filter.Email}%") &&
                 EF.Functions.Like(u.Login, $"%{filter.Login}%") &&
@@ -23,32 +23,32 @@ namespace TimeOffTracker.Model.Repositories
 
         public async Task<User> SelectByIdAsync(int id, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             return await context.Users.Where(u => u.Id == id && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
         public async Task<User> SelectByLoginAsync(string login, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             return await context.Users.Where(u => u.Login == login && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
         public async Task<User> SelectByEmailAsync(string email, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             return await context.Users.Where(u => u.Email == email && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
         public async Task<User> SelectByLoginAndPasswordAsync(string login, string password, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             return await context.Users.Where(u => u.Login == login && u.Password == password && u.Deleted == false)
                 .FirstOrDefaultAsync(token);
         }
 
         public async Task<int> InsertAsync(UserDto userDto, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             var user = Converter.DtoToEntity(userDto);
             await context.Users.AddAsync(user, token);
             await context.SaveChangesAsync(token);
@@ -57,7 +57,7 @@ namespace TimeOffTracker.Model.Repositories
 
         public async Task<bool> UpdateRoleIdAsync(int userId, int roleId, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             var user = await SelectByIdAsync(userId, token);
             if (user == null)
             {
@@ -68,6 +68,12 @@ namespace TimeOffTracker.Model.Repositories
             context.Users.Update(user);
             await context.SaveChangesAsync(token);
             return true;
+        }
+
+        public async Task<User> SelectAccounting(CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Users.Where(u => u.RoleId == 2 && u.Deleted == false).FirstOrDefaultAsync(token);
         }
     }
 }

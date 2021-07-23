@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TimeOffTracker.Model;
 using TimeOffTracker.Model.DTO;
+using TimeOffTracker.Model.Enum;
 using TimeOffTracker.Model.Repositories;
 
 namespace TimeOffTracker.Controllers {
@@ -55,9 +56,9 @@ namespace TimeOffTracker.Controllers {
             return Ok("User is Logged in!");
         }
 
-        private async Task<ActionResult<string>> GenerateJwt(User user, CancellationToken cancellationToken) {
-            var userRoleRepository = new UserRoleRepository();
-            var userRole = await userRoleRepository.SelectByIdAsync(user.RoleId, cancellationToken);
+        private async Task<ActionResult<string>> GenerateJwt(User user, CancellationToken cancellationToken)
+        {
+            var userRole = (UserRoles) user.RoleId;
 
             var authParams = _authOptions.Value;
             var securityKey = authParams.GetSymmetricSecurityKey();
@@ -66,7 +67,7 @@ namespace TimeOffTracker.Controllers {
             var claims = new List<Claim> {
                 new(JwtRegisteredClaimNames.UniqueName, user.Login),
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new("role", userRole.Type)
+                new("role", userRole.ToString())
             };
 
             var token = new JwtSecurityToken(authParams.Issuer, authParams.Audience, claims,

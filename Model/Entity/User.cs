@@ -20,7 +20,6 @@ namespace TimeOffTracker.Model
         public int RoleId { get; set; }
         public bool Deleted { get; set; }
 
-        public virtual UserRole Role { get; set; }
         public virtual ICollection<Request> Requests { get; set; }
         public virtual ICollection<UserSignature> UserSignatures { get; set; }
     }

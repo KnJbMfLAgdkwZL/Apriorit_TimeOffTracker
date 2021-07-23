@@ -20,9 +20,6 @@ namespace TimeOffTracker.Model
         public DateTime DateTimeFrom { get; set; }
         public DateTime DateTimeTo { get; set; }
 
-        public virtual ProjectRoleType ProjectRoleType { get; set; }
-        public virtual RequestType RequestType { get; set; }
-        public virtual StateDetail StateDetail { get; set; }
         public virtual User User { get; set; }
         public virtual ICollection<UserSignature> UserSignatures { get; set; }
     }
