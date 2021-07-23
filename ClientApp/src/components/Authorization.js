@@ -22,6 +22,7 @@ export class Authorization extends Component {
         this.state = {
             textFieldLoginValue: "",
             textFieldPasswordValue: "",
+            isLoading: false,
             errorState: false
         };
 
@@ -32,6 +33,9 @@ export class Authorization extends Component {
     }
 
     async _sendPostRequest() {
+        this.setState({
+            isLoading: true,
+        })
         const requestOptions = {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -43,6 +47,9 @@ export class Authorization extends Component {
                 if (response.status === 200) {
                     const token = await response.json().then(token => token);
                     Cookies.set("token", token);
+                    this.setState({
+                        isLoading: false,
+                    })
                     window.location.reload();
                 } else {
                     this.setState({
@@ -66,7 +73,13 @@ export class Authorization extends Component {
     }
 
     _logOut() {
+        this.setState({
+            isLoading: true,
+        })
         AuthService.logOut();
+        this.setState({
+            isLoading: false,
+        })
         window.location.reload();
     }
 
@@ -118,7 +131,7 @@ export class Authorization extends Component {
                             variant="contained"
                             color="primary"
                             className="mt-1">
-                            Sign In
+                            {this.state.isLoading ? "Signin In..." : "Sign In"}
                         </Button>
                         }
                         {AuthService.isLogged() &&
@@ -128,7 +141,7 @@ export class Authorization extends Component {
                             variant="outlined"
                             color="primary"
                             className="mt-2">
-                            Log out
+                            {this.state.isLoading ? "Logging out..." : "Log out"}
                         </Button>
                         }
                     </form>
