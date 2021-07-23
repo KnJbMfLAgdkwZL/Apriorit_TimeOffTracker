@@ -10,6 +10,7 @@ using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
 using PagedList;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Controllers
 {
@@ -138,11 +139,11 @@ namespace TimeOffTracker.Controllers
         {
             token.ThrowIfCancellationRequested();
 
-            var userRoleRepository = new UserRoleRepository();
-            var userRole = await userRoleRepository.SelectByIdAsync(user.RoleId, token);
-            if (userRole == null)
+            var enumRepository = new EnumRepository();
+
+            if (!enumRepository.Contains(user.RoleId))
             {
-                return BadRequest("Wrong Role");
+                return BadRequest("Wrong RoleId");
             }
 
             var userRepository = new UserRepository();
@@ -188,13 +189,11 @@ namespace TimeOffTracker.Controllers
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpGet]
-        public async Task<ActionResult<List<UserRole>>> GetUserRoles(CancellationToken token)
+        public async Task<ActionResult<List<EnumDto>>> GetUserRoles(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            var userRoleRepository = new UserRoleRepository();
-            var userRoles = await userRoleRepository.SelectAllAsync(token);
-            var userRolesDto = userRoles.Select(Converter.EntityToDto);
-            return Ok(userRolesDto);
+            var enumRepository = new EnumRepository();
+            return Ok(enumRepository.GetAll<UserRoles>());
         }
 
         /// <summary>
@@ -224,40 +223,40 @@ namespace TimeOffTracker.Controllers
             //userDto.Id ид юзера
             //userDto.RoleId новая роль
 
-            var userRoleRepository = new UserRoleRepository();
-            var role = await userRoleRepository.SelectByIdAsync(userDto.RoleId, token);
-            if (role == null) // роль не найдена в системе
+            var enumRepository = new EnumRepository();
+            if (!enumRepository.Contains(userDto.RoleId))
             {
                 return BadRequest("Wrong User.RoleId. Only 3 or 4");
             }
 
-            if (role.Id != 3 && role.Id != 4) // по спецификации админ меняет роли только с 3 на 4 и обратно
+            if (userDto.RoleId != UserRoles.Employee && userDto.RoleId != UserRoles.Manager)
             {
                 return BadRequest("Wrong User.RoleId. Only 3 or 4");
             }
 
             var userRepository = new UserRepository();
             var user = await userRepository.SelectByIdAsync(userDto.Id, token);
-            if (user == null) // пользоваель не найден в системе
+            if (user == null)
             {
                 return BadRequest("Wrong User.Id");
             }
 
             /*
-                Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.
+             * Если такие заявки, еще не были ему отправлены, то человек просто исчезает из цепочки утверждающих.
              */
 
-            if (role.Id == 3 && user.RoleId == 4) // Если  роль пользователя поменялась с Менеджер(4) на Сотрудник(3)
+            // Если  роль пользователя поменялась с Менеджер) на Сотрудник)
+            if (userDto.RoleId == UserRoles.Employee && (UserRoles) user.RoleId == UserRoles.Manager)
             {
                 //То нужно подтвердить все его существующие активные заявки на отпуск которые он должен подписать
                 var userSignatureRepository = new UserSignatureRepository();
-                var r1 = await userSignatureRepository.ConfirmOrRemoveAllManagerSignaturesAsync(user.Id, token);
+                await userSignatureRepository.ConfirmOrRemoveAllManagerSignaturesAsync(user.Id, token);
             }
 
             //Обновляем роль пользователя
-            var r = await userRepository.UpdateRoleIdAsync(user.Id, role.Id, token);
+            var r = await userRepository.UpdateRoleIdAsync(user.Id, (int) userDto.RoleId, token);
 
-            return Ok(r);
+            return Ok(true);
         }
     }
 }

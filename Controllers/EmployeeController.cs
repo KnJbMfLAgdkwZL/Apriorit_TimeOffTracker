@@ -37,18 +37,21 @@ namespace TimeOffTracker.Controllers
 
             var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             request.UserId = int.Parse(userId);
-            request.StateDetailId = (int) StateDetails.New;
+            request.StateDetailId = StateDetails.New;
             /*
                 "dateTimeFrom": "2021-07-23T04:42:16.523Z",
                 "dateTimeTo": "2021-07-23T04:42:16.523Z",
             */
+            //
 
             if (string.IsNullOrEmpty(request.Reason))
             {
                 return BadRequest("Reason not set");
             }
 
-            if (Enum.IsDefined(typeof(RequestTypes), request.RequestTypeId))
+            var enumRepository = new EnumRepository();
+
+            if (!enumRepository.Contains(request.RequestTypeId))
             {
                 return BadRequest("Wrong RequestType");
             }
@@ -117,7 +120,6 @@ namespace TimeOffTracker.Controllers
             бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
 */
 
-
             return request.Id;
         }
 
@@ -165,7 +167,7 @@ namespace TimeOffTracker.Controllers
                 9. После того, как пользователь нажал Сохранить:
                     a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
                     b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
-            */
+*/
 
             //	Наши типы отпусков в бд StateDetail:
             //		1,New,"Новая (New) Заявка создана в системе, но не получено еще ни одного утверждения/отказа",false
@@ -187,29 +189,30 @@ namespace TimeOffTracker.Controllers
                 4. Открывается страница с деталями заявки. 
                 5. Пользователь нажимает Дублировать (Duplicate).
                 6. Открывается страница создания новой заявки, заполненная информацией из дублируемой заявки.
-             */
-            return new Request().Id;
+*/
+            return new RequestDto().Id;
         }
 
         [HttpGet]
-        List<Request> GetRequests(RequestDto filter = null)
+        List<RequestDto> GetRequests(RequestDto filter = null)
         {
             /*
              Статистика заявок
                 1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.
                 2. Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.  
-            */
+
             //	Если фильтр filter == null то вернуть всех
             //	иначе вернуть похожие по указаному фильтру
             //	выводить старницами, по 10 елементов на страницу
-            return new List<Request>();
+            */
+            return new List<RequestDto>();
         }
 
         [HttpGet]
-        Request GetRequestDetails(int id)
+        RequestDto GetRequestDetails(int id)
         {
             //	детальная информация о заявке
-            return new Request();
+            return new RequestDto();
         }
 
         [HttpDelete]
@@ -225,7 +228,7 @@ namespace TimeOffTracker.Controllers
                 6. Появляется сообщение: “Do you really want to decline the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
                 7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
                 8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
-            */
+*/
 
             //if request.StateDetailId == 1, New
             //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи 
@@ -233,7 +236,7 @@ namespace TimeOffTracker.Controllers
 
 
         [HttpPut]
-        void EditRequestUserSignature(int requestId, List<UserSignature> users)
+        void EditRequestUserSignature(int requestId, List<UserSignatureDto> users)
         {
         }
 
@@ -260,6 +263,6 @@ namespace TimeOffTracker.Controllers
                 3.Пользователь оставил незаполненным одно из обязательных полей
                     Сообщение:”This field is required” (“Это обязательное поле”)
                     Заявка не создается.
-         */
+                    */
     }
 }

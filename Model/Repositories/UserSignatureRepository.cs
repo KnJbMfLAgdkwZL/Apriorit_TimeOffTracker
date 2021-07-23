@@ -14,7 +14,7 @@ namespace TimeOffTracker.Model.Repositories
     {
         public async Task<List<UserSignature>> SelectAllNotApprovedByIdAsync(int id, CancellationToken token)
         {
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             var userSignatures = await context.UserSignatures.Where(us =>
                 us.RequestId == id &&
                 us.Approved == false &&
@@ -26,7 +26,7 @@ namespace TimeOffTracker.Model.Repositories
         public async Task<bool> ConfirmOrRemoveAllManagerSignaturesAsync(int userId, CancellationToken token)
         {
             //Этот метод нуждается в тестировании
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
 
             //Получаю все не попдисанные подписи менеджера
             var userSignatures = await context.UserSignatures.Where(us =>
@@ -54,7 +54,7 @@ namespace TimeOffTracker.Model.Repositories
             //Этот метод нуждается в тестировании
             //Получаю не подписанные подписи заявки, той подписи которую нужно подписать. И сортирую их по us.NInQueue
             var alluserSignatures = await SelectAllNotApprovedByIdAsync(userSignature.Id, token);
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             for (var i = 0; i < alluserSignatures.Count; i++)
             {
                 var us = alluserSignatures[i];
@@ -78,7 +78,7 @@ namespace TimeOffTracker.Model.Repositories
         {
             //Этот метод нуждается в тестировании
             var alluserSignatures = await SelectAllNotApprovedByIdAsync(userSignature.Id, token);
-            await using var context = new MasterContext();
+            await using var context = new masterContext();
             for (var i = 0; i < alluserSignatures.Count; i++)
             {
                 var us = alluserSignatures[i];

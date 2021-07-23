@@ -8,8 +8,8 @@ using TimeOffTracker.Model;
 
 namespace TimeOffTracker.Migrations
 {
-    [DbContext(typeof(MasterContext))]
-    partial class MasterContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(masterContext))]
+    partial class masterContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -19,37 +19,6 @@ namespace TimeOffTracker.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "6.0.0-preview.5.21301.9")
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-            modelBuilder.Entity("TimeOffTracker.Model.ProjectRoleType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Comments")
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(max)")
-                        .HasColumnName("comments");
-
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit")
-                        .HasColumnName("deleted");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id")
-                        .HasName("Project_role_type_pk")
-                        .IsClustered(false);
-
-                    b.ToTable("Project_role_type", "_public");
-                });
 
             modelBuilder.Entity("TimeOffTracker.Model.Request", b =>
                 {
@@ -106,68 +75,6 @@ namespace TimeOffTracker.Migrations
                     b.HasIndex(new[] { "UserId" }, "IX_Request_user_id");
 
                     b.ToTable("Request", "_public");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.RequestType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Comments")
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(max)")
-                        .HasColumnName("comments");
-
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit")
-                        .HasColumnName("deleted");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id")
-                        .HasName("Request_type_pk")
-                        .IsClustered(false);
-
-                    b.ToTable("Request_type", "_public");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.StateDetail", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Comments")
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(max)")
-                        .HasColumnName("comments");
-
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit")
-                        .HasColumnName("deleted");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id")
-                        .HasName("State_detail_pk")
-                        .IsClustered(false);
-
-                    b.ToTable("State_detail", "_public");
                 });
 
             modelBuilder.Entity("TimeOffTracker.Model.User", b =>
@@ -234,37 +141,6 @@ namespace TimeOffTracker.Migrations
                     b.ToTable("User", "_public");
                 });
 
-            modelBuilder.Entity("TimeOffTracker.Model.UserRole", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Comments")
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(max)")
-                        .HasColumnName("comments");
-
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit")
-                        .HasColumnName("deleted");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id")
-                        .HasName("User_Role_pk")
-                        .IsClustered(false);
-
-                    b.ToTable("User_Role", "_public");
-                });
-
             modelBuilder.Entity("TimeOffTracker.Model.UserSignature", b =>
                 {
                     b.Property<int>("Id")
@@ -306,48 +182,13 @@ namespace TimeOffTracker.Migrations
 
             modelBuilder.Entity("TimeOffTracker.Model.Request", b =>
                 {
-                    b.HasOne("TimeOffTracker.Model.ProjectRoleType", "ProjectRoleType")
-                        .WithMany("Requests")
-                        .HasForeignKey("ProjectRoleTypeId")
-                        .HasConstraintName("Request_Project_role_type_id_fk")
-                        .IsRequired();
-
-                    b.HasOne("TimeOffTracker.Model.RequestType", "RequestType")
-                        .WithMany("Requests")
-                        .HasForeignKey("RequestTypeId")
-                        .HasConstraintName("Request_Request_type_id_fk")
-                        .IsRequired();
-
-                    b.HasOne("TimeOffTracker.Model.StateDetail", "StateDetail")
-                        .WithMany("Requests")
-                        .HasForeignKey("StateDetailId")
-                        .HasConstraintName("Request_State_detail_id_fk")
-                        .IsRequired();
-
                     b.HasOne("TimeOffTracker.Model.User", "User")
                         .WithMany("Requests")
                         .HasForeignKey("UserId")
                         .HasConstraintName("Request_User_id_fk")
                         .IsRequired();
 
-                    b.Navigation("ProjectRoleType");
-
-                    b.Navigation("RequestType");
-
-                    b.Navigation("StateDetail");
-
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.User", b =>
-                {
-                    b.HasOne("TimeOffTracker.Model.UserRole", "Role")
-                        .WithMany("Users")
-                        .HasForeignKey("RoleId")
-                        .HasConstraintName("User_User_Role_id_fk")
-                        .IsRequired();
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("TimeOffTracker.Model.UserSignature", b =>
@@ -369,24 +210,9 @@ namespace TimeOffTracker.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TimeOffTracker.Model.ProjectRoleType", b =>
-                {
-                    b.Navigation("Requests");
-                });
-
             modelBuilder.Entity("TimeOffTracker.Model.Request", b =>
                 {
                     b.Navigation("UserSignatures");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.RequestType", b =>
-                {
-                    b.Navigation("Requests");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.StateDetail", b =>
-                {
-                    b.Navigation("Requests");
                 });
 
             modelBuilder.Entity("TimeOffTracker.Model.User", b =>
@@ -394,11 +220,6 @@ namespace TimeOffTracker.Migrations
                     b.Navigation("Requests");
 
                     b.Navigation("UserSignatures");
-                });
-
-            modelBuilder.Entity("TimeOffTracker.Model.UserRole", b =>
-                {
-                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

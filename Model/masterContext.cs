@@ -1,27 +1,23 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using TimeOffTracker.Config;
 
 namespace TimeOffTracker.Model
 {
-    public partial class MasterContext : DbContext
+    public partial class masterContext : DbContext
     {
-        public MasterContext()
+        public masterContext()
         {
         }
 
-        public MasterContext(DbContextOptions<MasterContext> options)
+        public masterContext(DbContextOptions<masterContext> options)
             : base(options)
         {
         }
 
-        public virtual DbSet<ProjectRoleType> ProjectRoleTypes { get; set; }
         public virtual DbSet<Request> Requests { get; set; }
-        public virtual DbSet<RequestType> RequestTypes { get; set; }
-        public virtual DbSet<StateDetail> StateDetails { get; set; }
         public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<UserRole> UserRoles { get; set; }
         public virtual DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -36,29 +32,6 @@ namespace TimeOffTracker.Model
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasAnnotation("Relational:Collation", "Cyrillic_General_CI_AS");
-
-            modelBuilder.Entity<ProjectRoleType>(entity =>
-            {
-                entity.HasKey(e => e.Id)
-                    .HasName("Project_role_type_pk")
-                    .IsClustered(false);
-
-                entity.ToTable("Project_role_type", "_public");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.Comments)
-                    .IsUnicode(false)
-                    .HasColumnName("comments");
-
-                entity.Property(e => e.Deleted).HasColumnName("deleted");
-
-                entity.Property(e => e.Type)
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("type");
-            });
 
             modelBuilder.Entity<Request>(entity =>
             {
@@ -102,75 +75,11 @@ namespace TimeOffTracker.Model
 
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
-                entity.HasOne(d => d.ProjectRoleType)
-                    .WithMany(p => p.Requests)
-                    .HasForeignKey(d => d.ProjectRoleTypeId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("Request_Project_role_type_id_fk");
-
-                entity.HasOne(d => d.RequestType)
-                    .WithMany(p => p.Requests)
-                    .HasForeignKey(d => d.RequestTypeId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("Request_Request_type_id_fk");
-
-                entity.HasOne(d => d.StateDetail)
-                    .WithMany(p => p.Requests)
-                    .HasForeignKey(d => d.StateDetailId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("Request_State_detail_id_fk");
-
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Requests)
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("Request_User_id_fk");
-            });
-
-            modelBuilder.Entity<RequestType>(entity =>
-            {
-                entity.HasKey(e => e.Id)
-                    .HasName("Request_type_pk")
-                    .IsClustered(false);
-
-                entity.ToTable("Request_type", "_public");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.Comments)
-                    .IsUnicode(false)
-                    .HasColumnName("comments");
-
-                entity.Property(e => e.Deleted).HasColumnName("deleted");
-
-                entity.Property(e => e.Type)
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("type");
-            });
-
-            modelBuilder.Entity<StateDetail>(entity =>
-            {
-                entity.HasKey(e => e.Id)
-                    .HasName("State_detail_pk")
-                    .IsClustered(false);
-
-                entity.ToTable("State_detail", "_public");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.Comments)
-                    .IsUnicode(false)
-                    .HasColumnName("comments");
-
-                entity.Property(e => e.Deleted).HasColumnName("deleted");
-
-                entity.Property(e => e.Type)
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("type");
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -222,35 +131,6 @@ namespace TimeOffTracker.Model
                     .HasMaxLength(50)
                     .IsUnicode(false)
                     .HasColumnName("second_name");
-
-                entity.HasOne(d => d.Role)
-                    .WithMany(p => p.Users)
-                    .HasForeignKey(d => d.RoleId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("User_User_Role_id_fk");
-            });
-
-            modelBuilder.Entity<UserRole>(entity =>
-            {
-                entity.HasKey(e => e.Id)
-                    .HasName("User_Role_pk")
-                    .IsClustered(false);
-
-                entity.ToTable("User_Role", "_public");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.Comments)
-                    .IsUnicode(false)
-                    .HasColumnName("comments");
-
-                entity.Property(e => e.Deleted).HasColumnName("deleted");
-
-                entity.Property(e => e.Type)
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("type");
             });
 
             modelBuilder.Entity<UserSignature>(entity =>

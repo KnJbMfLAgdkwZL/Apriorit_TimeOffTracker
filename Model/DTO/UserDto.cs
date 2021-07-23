@@ -1,4 +1,6 @@
-﻿namespace TimeOffTracker.Model.DTO
+﻿using TimeOffTracker.Model.Enum;
+
+namespace TimeOffTracker.Model.DTO
 {
     public partial class UserDto
     {
@@ -8,7 +10,7 @@
         public string FirstName { get; set; }
         public string SecondName { get; set; }
         public string Password { get; set; }
-        public int RoleId { get; set; }
+        public UserRoles RoleId { get; set; }
         public bool Deleted { get; set; }
     }
 }

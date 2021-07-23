@@ -1,55 +1,23 @@
 using TimeOffTracker.Model.DTO;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Model
 {
     public static class Converter
     {
-        public static ProjectRoleType DtoToEntity(ProjectRoleTypeDto dto)
-        {
-            return new ProjectRoleType()
-            {
-                Id = dto.Id,
-                Type = dto.Type,
-                Comments = dto.Comments,
-                Deleted = dto.Deleted
-            };
-        }
-
         public static Request DtoToEntity(RequestDto dto)
         {
             return new Request()
             {
                 Id = dto.Id,
-                RequestTypeId = dto.RequestTypeId,
+                RequestTypeId = (int) dto.RequestTypeId,
                 Reason = dto.Reason,
                 ProjectRoleComment = dto.ProjectRoleComment,
-                ProjectRoleTypeId = dto.ProjectRoleTypeId,
+                ProjectRoleTypeId = (int) dto.ProjectRoleTypeId,
                 UserId = dto.UserId,
-                StateDetailId = dto.StateDetailId,
+                StateDetailId = (int) dto.StateDetailId,
                 DateTimeFrom = dto.DateTimeFrom,
                 DateTimeTo = dto.DateTimeTo
-            };
-        }
-
-        public static RequestType DtoToEntity(RequestTypeDto dto)
-        {
-            return new RequestType()
-            {
-                Id = dto.Id,
-                Type = dto.Type,
-                Comments = dto.Comments,
-                Deleted = dto.Deleted
-            };
-        }
-
-        public static StateDetail DtoToEntity(StateDetailDto dto)
-        {
-            return new StateDetail()
-            {
-                Id = dto.Id,
-                Type = dto.Type,
-                Comments = dto.Comments,
-                Deleted = dto.Deleted
             };
         }
 
@@ -63,18 +31,7 @@ namespace TimeOffTracker.Model
                 FirstName = dto.FirstName,
                 SecondName = dto.SecondName,
                 Password = dto.Password,
-                RoleId = dto.RoleId,
-                Deleted = dto.Deleted
-            };
-        }
-
-        public static UserRole DtoToEntity(UserRoleDto dto)
-        {
-            return new UserRole()
-            {
-                Id = dto.Id,
-                Type = dto.Type,
-                Comments = dto.Comments,
+                RoleId = (int) dto.RoleId,
                 Deleted = dto.Deleted
             };
         }
@@ -92,52 +49,19 @@ namespace TimeOffTracker.Model
             };
         }
 
-        public static ProjectRoleTypeDto EntityToDto(ProjectRoleType entity)
-        {
-            return new ProjectRoleTypeDto()
-            {
-                Id = entity.Id,
-                Type = entity.Type,
-                Comments = entity.Comments,
-                Deleted = entity.Deleted
-            };
-        }
-
         public static RequestDto EntityToDto(Request entity)
         {
             return new RequestDto()
             {
                 Id = entity.Id,
-                RequestTypeId = entity.RequestTypeId,
+                RequestTypeId = (RequestTypes) entity.RequestTypeId,
                 Reason = entity.Reason,
                 ProjectRoleComment = entity.ProjectRoleComment,
-                ProjectRoleTypeId = entity.ProjectRoleTypeId,
+                ProjectRoleTypeId = (ProjectRoleTypes) entity.ProjectRoleTypeId,
                 UserId = entity.UserId,
-                StateDetailId = entity.StateDetailId,
+                StateDetailId = (StateDetails) entity.StateDetailId,
                 DateTimeFrom = entity.DateTimeFrom,
                 DateTimeTo = entity.DateTimeTo
-            };
-        }
-
-        public static RequestTypeDto EntityToDto(RequestType entity)
-        {
-            return new RequestTypeDto()
-            {
-                Id = entity.Id,
-                Type = entity.Type,
-                Comments = entity.Comments,
-                Deleted = entity.Deleted
-            };
-        }
-
-        public static StateDetailDto EntityToDto(StateDetail entity)
-        {
-            return new StateDetailDto()
-            {
-                Id = entity.Id,
-                Type = entity.Type,
-                Comments = entity.Comments,
-                Deleted = entity.Deleted
             };
         }
 
@@ -151,18 +75,7 @@ namespace TimeOffTracker.Model
                 FirstName = entity.FirstName,
                 SecondName = entity.SecondName,
                 Password = entity.Password,
-                RoleId = entity.RoleId,
-                Deleted = entity.Deleted
-            };
-        }
-
-        public static UserRoleDto EntityToDto(UserRole entity)
-        {
-            return new UserRoleDto()
-            {
-                Id = entity.Id,
-                Type = entity.Type,
-                Comments = entity.Comments,
+                RoleId = (UserRoles) entity.RoleId,
                 Deleted = entity.Deleted
             };
         }
