@@ -434,3 +434,4 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 /.idea/
 *.json
+appsettings.json

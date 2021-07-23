@@ -7,7 +7,6 @@ import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
 import { AuthService } from "../Services/AuthService";
 //import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
-import Cookies from 'js-cookie';
 import '../custom.css'
 
 const URL = "http://localhost:5000/"
@@ -46,7 +45,7 @@ export class Authorization extends Component {
             .then(async response => {
                 if (response.status === 200) {
                     const token = await response.json().then(token => token);
-                    Cookies.set("token", token);
+                    localStorage.setItem("token", token);
                     this.setState({
                         isLoading: false,
                     })
