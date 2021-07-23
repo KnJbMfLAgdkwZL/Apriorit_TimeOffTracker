@@ -3,10 +3,10 @@ import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
-import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
-import {AuthService} from "../Services/AuthService";
+import { AuthService } from "../Services/AuthService";
+//import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import Cookies from 'js-cookie';
 import '../custom.css'
 
@@ -89,7 +89,7 @@ export class Authorization extends Component {
                 <CssBaseline/>
                 <div>
                     <Avatar>
-                        <LockOutlinedIcon/>
+                        {/*    <LockOutlinedIcon/> */}
                     </Avatar>
                     <Typography component="h1" variant="h5">
                         Sign in {this.state.errorState && "again please..."}
