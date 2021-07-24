@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using TimeOffTracker.Model.DTO;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Model.Repositories
 {
@@ -70,10 +71,30 @@ namespace TimeOffTracker.Model.Repositories
             return true;
         }
 
-        public async Task<User> SelectAccounting(CancellationToken token)
+        public async Task<User> SelectOneAccounting(CancellationToken token)
         {
             await using var context = new masterContext();
             return await context.Users.Where(u => u.RoleId == 2 && u.Deleted == false).FirstOrDefaultAsync(token);
+        }
+
+        public async Task<bool> CheckManagers(List<UserSignatureDto> managers, CancellationToken token)
+        {
+            foreach (var us in managers)
+            {
+                var user = await SelectByIdAsync(us.UserId, token);
+
+                if (user == null)
+                {
+                    return false;
+                }
+
+                if (user.RoleId != (int) UserRoles.Manager)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

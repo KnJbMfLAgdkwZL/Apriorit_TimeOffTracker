@@ -104,5 +104,14 @@ namespace TimeOffTracker.Model.Repositories
             await context.SaveChangesAsync(token);
             return true;
         }
+
+        public async Task<int> InsertAsync(UserSignatureDto userSignatureDto, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignature = Converter.DtoToEntity(userSignatureDto);
+            await context.UserSignatures.AddAsync(userSignature, token);
+            await context.SaveChangesAsync(token);
+            return userSignature.Id;
+        }
     }
 }

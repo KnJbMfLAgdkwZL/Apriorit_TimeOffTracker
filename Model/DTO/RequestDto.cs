@@ -14,8 +14,8 @@ namespace TimeOffTracker.Model.DTO
         public ProjectRoleTypes ProjectRoleTypeId { get; set; }
         public int UserId { get; set; }
         public StateDetails StateDetailId { get; set; }
-        public DateTime DateTimeFrom { get; set; }
-        public DateTime DateTimeTo { get; set; }
-        public virtual List<UserSignatureDto> UserSignatureDto { get; set; }
+        [Required] public DateTime DateTimeFrom { get; set; }
+        [Required] public DateTime DateTimeTo { get; set; }
+        public List<UserSignatureDto> UserSignatureDto { get; set; }
     }
 }

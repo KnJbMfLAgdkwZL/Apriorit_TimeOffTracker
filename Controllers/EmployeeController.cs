@@ -34,16 +34,28 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto request, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+            request.UserSignatureDto ??= new List<UserSignatureDto>();
 
+            //Получить текущего пользователя
             var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             request.UserId = int.Parse(userId);
             request.StateDetailId = StateDetails.New;
-            /*
-                "dateTimeFrom": "2021-07-23T04:42:16.523Z",
-                "dateTimeTo": "2021-07-23T04:42:16.523Z",
-            */
-            //
 
+            //Проверка даты
+            var time1 = request.DateTimeFrom.Ticks - DateTime.Now.Ticks;
+            var time2 = request.DateTimeTo.Ticks - DateTime.Now.Ticks;
+            var time3 = request.DateTimeTo.Ticks - request.DateTimeFrom.Ticks;
+            if (time1 < 0 || time2 < 0)
+            {
+                return BadRequest("The dates are in the past. Please change the dates");
+            }
+
+            if (time3 < 0)
+            {
+                return BadRequest("Start date is greater than end date");
+            }
+
+            //Проверка причины отпуска на пустоту
             if (string.IsNullOrEmpty(request.Reason))
             {
                 return BadRequest("Reason not set");
@@ -51,35 +63,43 @@ namespace TimeOffTracker.Controllers
 
             var enumRepository = new EnumRepository();
 
+            //Проверка типа отпуска
             if (!enumRepository.Contains(request.RequestTypeId))
             {
                 return BadRequest("Wrong RequestType");
             }
 
+            var userRepository = new UserRepository();
+            //Типы отпуска который должны подписать менеджеры
             var managers = new List<RequestTypes>()
             {
                 RequestTypes.PaidLeave,
                 RequestTypes.AdministrativeUnpaidLeave,
                 RequestTypes.StudyLeave
             };
-            if (managers.Contains((RequestTypes) request.RequestTypeId))
+            if (managers.Contains(request.RequestTypeId))
             {
+                //Менеджер не был указан
                 if (request.UserSignatureDto.Count <= 0)
                 {
                     return BadRequest("Manager not set");
                 }
 
-                if (Enum.IsDefined(typeof(ProjectRoleTypes), request.RequestTypeId))
+
+                //Не указан тип участия в проекте
+                if (!enumRepository.Contains(request.ProjectRoleTypeId))
                 {
                     return BadRequest("Wrong ProjectRoleType");
                 }
 
+                //Не указны обязанности на проекте
                 if (string.IsNullOrEmpty(request.ProjectRoleComment))
                 {
                     return BadRequest("ProjectRoleComment not set");
                 }
             }
 
+            //Типы отпуска который должна подписать только бухгалтерия
             var accountingOnly = new List<RequestTypes>()
             {
                 RequestTypes.AdministrativeUnpaidLeave,
@@ -87,41 +107,70 @@ namespace TimeOffTracker.Controllers
                 RequestTypes.SickLeaveWithDocuments,
                 RequestTypes.SickLeaveWithoutDocuments
             };
-            if (accountingOnly.Contains((RequestTypes) request.RequestTypeId))
+            if (accountingOnly.Contains(request.RequestTypeId))
             {
+                request.UserSignatureDto = new List<UserSignatureDto>();
             }
 
-            var userRepository = new UserRepository();
-            var accounting = await userRepository.SelectAccounting(token);
+            //Проверка менеджеров на наличие в базе
+            var checkPass = await userRepository.CheckManagers(request.UserSignatureDto, token);
+            if (!checkPass)
+            {
+                return BadRequest("Wrong Manager set");
+            }
+
+            var accounting = await userRepository.SelectOneAccounting(token);
+            if (accounting == null)
+            {
+                return BadRequest("Accounting not found");
+            }
+
+            var requestRepository = new RequestRepository();
+            var requestId = await requestRepository.InsertAsync(request, token);
+
             request.UserSignatureDto.Add(new UserSignatureDto()
             {
-                Approved = false,
-                UserId = accounting.Id,
-                Deleted = false,
-                NInQueue = 0
-                //Id = 1
-                //RequestId = 10
+                NInQueue = -1,
+                RequestId = requestId,
+                UserId = accounting.Id
             });
-/*      
-        Цепочка менеджеров, зависящей от проектной роли (должности) человека и его участием в проекте: 
-            1 Paid leave, Очередной оплачиваемый отпуск
-            2 Administrative unpaid leave, Административный (неоплачиваемый) отпуск
-            4 Study leave, Учебный отпуск
-        Только Бухгалтерия:  
-            3 Force majeure administrative leave, Административный отпуск по причине форс-мажора
-            5 Social leave, Социальный отпуск (по причине смерти близкого)
-            6 Sick leave with documents, Больничный с больничным листом
-            7 Sick leave without documents, Больничный без больничного листа
-*/ /*            
-        2. При создании заявки сотрудник указывает следующую информацию: 
-            b. Даты c. (для больничных) Полный день или полдня
 
-        6. Соответствующее сообщение отправляется на почту бухгалтерии. После утверждения заявки на отпуск
-            бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
-*/
+            var userSignatureRepository = new UserSignatureRepository();
 
-            return request.Id;
+            //Убираем менеджеров которые повторяются
+            request.UserSignatureDto = request.UserSignatureDto
+                .GroupBy(car => car.UserId)
+                .Select(g => g.First())
+                .ToList();
+
+            //Сортируем по NInQueue
+            request.UserSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
+
+            var nInQueue = 0;
+            foreach (var us in request.UserSignatureDto)
+            {
+                us.NInQueue = nInQueue;
+                us.RequestId = requestId;
+                us.Approved = false;
+                us.Deleted = false;
+
+                nInQueue++;
+
+                await userSignatureRepository.InsertAsync(us, token);
+            }
+
+            /*
+                бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
+            */
+
+            return requestId;
         }
+
+        [HttpGet]
+        void GetManagers()
+        {
+        }
+
 
         [HttpPut]
         void EditRequest(RequestDto requestDto)
@@ -167,21 +216,14 @@ namespace TimeOffTracker.Controllers
                 9. После того, как пользователь нажал Сохранить:
                     a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
                     b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
-*/
-
-            //	Наши типы отпусков в бд StateDetail:
-            //		1,New,"Новая (New) Заявка создана в системе, но не получено еще ни одного утверждения/отказа",false
-            //		2,In progress,"Заявка получила минимум одно утверждение, но не была утверждена всеми людьми из цепочки менеджеров ",false
-            //		3,Approved,"Заявка была утверждена всеми людьми из цепочки менеджеров, отпуск считается утвержденным.",false
-            //		4,Rejected,"Заявка была отклонена кем-то из цепочки менеджеров. Отпуск не утвержден. Сотрудник может составить новую заявку. Заявка также считается отклоненной, если сотрудник лично отменил ее или изменил ее.",false
-            //		6,Deleted,Заявка была Удалена пользователем,false
+            */
         }
 
         [HttpPost]
         int CopyRequest(int id)
         {
             /*
-            3. Сотрудник может дублировать уже существующую заявку на отпуск в любом статусе.
+             3. Сотрудник может дублировать уже существующую заявку на отпуск в любом статусе.
             Сценарии использования:Дублирование заявки на отпуск
                 1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
                 2. Пользователь видит список своих заявок.
@@ -189,7 +231,7 @@ namespace TimeOffTracker.Controllers
                 4. Открывается страница с деталями заявки. 
                 5. Пользователь нажимает Дублировать (Duplicate).
                 6. Открывается страница создания новой заявки, заполненная информацией из дублируемой заявки.
-*/
+            */
             return new RequestDto().Id;
         }
 
@@ -200,7 +242,6 @@ namespace TimeOffTracker.Controllers
              Статистика заявок
                 1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.
                 2. Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.  
-
             //	Если фильтр filter == null то вернуть всех
             //	иначе вернуть похожие по указаному фильтру
             //	выводить старницами, по 10 елементов на страницу
@@ -228,8 +269,7 @@ namespace TimeOffTracker.Controllers
                 6. Появляется сообщение: “Do you really want to decline the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
                 7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
                 8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
-*/
-
+            */
             //if request.StateDetailId == 1, New
             //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи 
         }
@@ -250,19 +290,15 @@ namespace TimeOffTracker.Controllers
         //  и выдал потом нужный Http статус?
 
         /*
-         Ошибки
-            Пользователя
-                1.Пользователь выбрал даты полностью или частично в прошлом. 
-                    Сообщение:”The dates are in the past. Please change the dates” (“Даты в прошлом. Пожалуйста, измените даты”) Заявка не создается
+        2.Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
+            Сообщение:”There is another request for these dates. Do you really want to create one more request?” 
+            (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
+            Yes (Да)  - заявка создается
+            No (Нет) - заявка не создается
             
-                2.Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
-                    Сообщение:”There is another request for these dates. Do you really want to create one more request?” (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
-                    Yes (Да)  - заявка создается
-                    No (Нет) - заявка не создается
-            
-                3.Пользователь оставил незаполненным одно из обязательных полей
-                    Сообщение:”This field is required” (“Это обязательное поле”)
-                    Заявка не создается.
-                    */
+        3.Пользователь оставил незаполненным одно из обязательных полей
+            Сообщение:”This field is required” (“Это обязательное поле”)
+            Заявка не создается.
+        */
     }
 }
