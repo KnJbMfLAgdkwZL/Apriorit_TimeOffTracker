@@ -28,6 +28,39 @@ namespace TimeOffTracker.Controllers
     [Authorize(Roles = "Employee, Manager")]
     public class EmployeeController : ControllerBase
     {
+        /// <summary>
+        /// POST: /Employee/СreateRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="request">
+        ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
+        /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
+        /// 
+        /// Body
+        /// {
+        ///     "dateTimeFrom": "2021-07-25",
+        ///     "dateTimeTo": "2021-07-26",
+        /// 
+        ///     "requestTypeId": 1,     
+        ///     "reason": "string",
+        ///
+        ///  *  "projectRoleComment": "Варил кофе",
+        ///  *  "projectRoleTypeId": 1, 
+        ///  *  "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// request.Id
+        /// </returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpPost]

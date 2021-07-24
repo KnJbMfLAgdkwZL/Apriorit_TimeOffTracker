@@ -163,6 +163,7 @@ namespace TimeOffTracker.Controllers
             return Ok(r);
         }
 
+        /// <summary>
         /// GET: /Admin/GetUserRoles
         /// Header
         /// {
