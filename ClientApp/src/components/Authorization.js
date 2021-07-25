@@ -1,13 +1,13 @@
 ﻿import React, {Component} from 'react';
-import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
-import { AuthService } from "../Services/AuthService";
-//import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
+import {AuthService} from "../Services/AuthService";
 import '../custom.css'
+import {RequestSendingService} from "../Services/RequestSendingService";
+import {fiFI} from "@material-ui/core/locale";
 
 const URL = "http://localhost:5000/"
 
@@ -35,14 +35,12 @@ export class Authorization extends Component {
         this.setState({
             isLoading: true,
         })
-        const requestOptions = {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({login: this.state.textFieldLoginValue, password: this.state.textFieldPasswordValue}),
-            redirect: 'manual'
-        };
-        await fetch(URL + 'api/auth', requestOptions)
-            .then(async response => {
+
+        await RequestSendingService.sendPostRequestUnauthorized(URL + 'api/auth', {
+            login: this.state.textFieldLoginValue,
+            password: this.state.textFieldPasswordValue
+        }).then(async response => {
+            if (response.status === 200) {
                 if (response.status === 200) {
                     const token = await response.json().then(token => token);
                     localStorage.setItem("token", token);
@@ -54,9 +52,12 @@ export class Authorization extends Component {
                     this.setState({
                         errorState: true
                     });
+                    this.setState({
+                        isLoading: false,
+                    })
                 }
-            })
-            .catch(error => console.error(error));
+            }
+        });
     }
 
     _handleTextFiledLoginChange(e) {
@@ -87,9 +88,6 @@ export class Authorization extends Component {
             <Container component="main" maxWidth="xs">
                 <CssBaseline/>
                 <div>
-                    <Avatar>
-                        {/*    <LockOutlinedIcon/> */}
-                    </Avatar>
                     <Typography component="h1" variant="h5">
                         Sign in {this.state.errorState && "again please..."}
                     </Typography>
