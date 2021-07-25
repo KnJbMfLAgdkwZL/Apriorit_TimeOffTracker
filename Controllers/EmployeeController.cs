@@ -67,13 +67,12 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto request, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-
-            //Если список подписчиков не задан, создаем пустой лист
-            request.UserSignatureDto ??= new List<UserSignatureDto>();
-
             //Получить текущего пользователя
             var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             request.UserId = int.Parse(userId);
+
+            //Если список подписчиков не задан, создаем пустой лист
+            request.UserSignatureDto ??= new List<UserSignatureDto>();
 
             //Статус заявки
             request.StateDetailId = StateDetails.New;
@@ -91,6 +90,16 @@ namespace TimeOffTracker.Controllers
             {
                 return BadRequest("Start date is greater than end date");
             }
+
+            /*
+             Нужно добавить проверку на пересечение дат
+             
+             Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
+             Сообщение:”There is another request for these dates. Do you really want to create one more request?”
+             (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
+             Yes (Да)  - заявка создается
+             No (Нет) - заявка не создается
+             */
 
             //Проверка причины отпуска на пустоту
             if (string.IsNullOrEmpty(request.Reason))
@@ -271,6 +280,7 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<string>> GetRequestDetails([FromQuery(Name = "id")] int id,
             CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
 
@@ -290,10 +300,25 @@ namespace TimeOffTracker.Controllers
             });
         }
 
-
+        /// <summary>
+        /// PUT: /Employee/EditRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="requestDto"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
         [HttpPut]
-        void EditRequest(RequestDto requestDto)
+        public async Task<ActionResult<int>> EditRequest([FromBody] RequestDto request, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
             /*
              Изменение заявки на отпуск
                 1. До первого утверждения сотрудник может полностью изменить заявку на отпуск или удалить ее.
@@ -336,82 +361,145 @@ namespace TimeOffTracker.Controllers
                     a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
                     b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
             */
+            return Ok();
         }
 
+        /// <summary>
+        /// PUT: /Employee/EditRequestUserSignature
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="users"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditRequestUserSignature([FromQuery(Name = "id")] int id,
+            [FromBody] List<UserSignatureDto> users,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// POST: /Employee/GetRequests?page=3&pageSize=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="filter">
+        /// Body
+        /// {
+        ///     "RequestTypes": "1",
+        ///     "StateDetails": "1",
+        ///     "DateTime": "",
+        ///     "DateTime": ""
+        /// }
+        /// </param>
+        /// <param name="page">Текущая страница</param>
+        /// <param name="pageSize">Размер страницы</param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// {
+        ///     "page": 3,
+        ///     "pageSize": 2,
+        ///     "totalPages": 12,
+        ///     "users": [Request1, Request2, Request3]
+        /// }
+        /// </returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpPost]
-        int CopyRequest(int id)
+        public async Task<ActionResult<string>> GetRequests([FromBody] RequestDto filter,
+            [FromQuery(Name = "page")] int page,
+            [FromQuery(Name = "pageSize")] int pageSize, CancellationToken token)
         {
-            /*
-             3. Сотрудник может дублировать уже существующую заявку на отпуск в любом статусе.
-            Сценарии использования:Дублирование заявки на отпуск
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в  любом и нажимает  Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Дублировать (Duplicate).
-                6. Открывается страница создания новой заявки, заполненная информацией из дублируемой заявки.
-            */
-            return new RequestDto().Id;
-        }
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
 
-        [HttpGet]
-        List<RequestDto> GetRequests(RequestDto filter = null)
-        {
             /*
              Статистика заявок
-                1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.
-                2. Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.  
+                1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.  
             //	Если фильтр filter == null то вернуть всех
             //	иначе вернуть похожие по указаному фильтру
             //	выводить старницами, по 10 елементов на страницу
             */
-            return new List<RequestDto>();
+            return Ok();
         }
 
-
+        /// <summary>
+        /// DELETE: /Employee/DeleteRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpDelete]
-        void DeleteRequest(int request_id)
+        public async Task<ActionResult<string>> DeleteRequest([FromQuery(Name = "id")] int id, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
             /*
              Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved) или “В процессе” (In progress), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
+                3. Пользователь выбирает заявку в состоянии 
+                    “Утверждена” (Approved) или 
+                    “В процессе” (In progress), 
+                    у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
                 4. Открывается страница с деталями заявки. 
                 5. Пользователь нажимает Отменить (Decline).
-                6. Появляется сообщение: “Do you really want to decline the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
+                6. Появляется сообщение: “Do you really want to decline the approved request?” 
+                (“Вы действительно хотите изменить утвержденную заявку?”)
+                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
+                В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
                 8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
             */
             //if request.StateDetailId == 1, New
-            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи 
+            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
+            return Ok();
         }
 
-
-        [HttpPut]
-        void EditRequestUserSignature(int requestId, List<UserSignatureDto> users)
-        {
-        }
-
+        /// <summary>
+        /// GET: /Employee/GetDays
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
         [HttpGet]
-        void GetDays()
+        public async Task<ActionResult<int>> GetDays(CancellationToken token)
         {
-            //	Получить количество дней которые полил работник з начала года до текушей даты
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            /*
+                Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.
+             */
+            return Ok();
         }
         //	Наверно нужно создать еще свои пользовательские ошибки?
         //  И кидать когда нужно, что бы потом обработчик ошибок в midelwares их записал в лог
         //  и выдал потом нужный Http статус?
-
-        /*
-        2.Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
-            Сообщение:”There is another request for these dates. Do you really want to create one more request?” 
-            (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
-            Yes (Да)  - заявка создается
-            No (Нет) - заявка не создается
-            
-        3.Пользователь оставил незаполненным одно из обязательных полей
-            Сообщение:”This field is required” (“Это обязательное поле”)
-            Заявка не создается.
-        */
     }
 }
