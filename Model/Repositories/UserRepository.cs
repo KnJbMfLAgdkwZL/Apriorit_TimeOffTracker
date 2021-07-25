@@ -96,5 +96,14 @@ namespace TimeOffTracker.Model.Repositories
 
             return true;
         }
+
+        public async Task<List<User>> SelectAllByRoleAsync(UserRoles role, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Users.Where(u =>
+                u.RoleId == (int) role &&
+                u.Deleted == false
+            ).ToListAsync(token);
+        }
     }
 }

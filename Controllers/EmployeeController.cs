@@ -46,7 +46,7 @@ namespace TimeOffTracker.Controllers
         /// 
         ///     "requestTypeId": 1,     
         ///     "reason": "string",
-        ///
+        /// 
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
         ///  *  "userSignatureDto": [
@@ -61,17 +61,21 @@ namespace TimeOffTracker.Controllers
         /// <returns>
         /// request.Id
         /// </returns>
-        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpPost]
         public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto request, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+
+            //Если список подписчиков не задан, создаем пустой лист
             request.UserSignatureDto ??= new List<UserSignatureDto>();
 
             //Получить текущего пользователя
             var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             request.UserId = int.Parse(userId);
+
+            //Статус заявки
             request.StateDetailId = StateDetails.New;
 
             //Проверка даты
@@ -102,7 +106,6 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Wrong RequestType");
             }
 
-            var userRepository = new UserRepository();
             //Типы отпуска который должны подписать менеджеры
             var managers = new List<RequestTypes>()
             {
@@ -117,7 +120,6 @@ namespace TimeOffTracker.Controllers
                 {
                     return BadRequest("Manager not set");
                 }
-
 
                 //Не указан тип участия в проекте
                 if (!enumRepository.Contains(request.ProjectRoleTypeId))
@@ -142,8 +144,11 @@ namespace TimeOffTracker.Controllers
             };
             if (accountingOnly.Contains(request.RequestTypeId))
             {
+                //Обнуляем список подписчиков
                 request.UserSignatureDto = new List<UserSignatureDto>();
             }
+
+            var userRepository = new UserRepository();
 
             //Проверка менеджеров на наличие в базе
             var checkPass = await userRepository.CheckManagers(request.UserSignatureDto, token);
@@ -152,15 +157,18 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Wrong Manager set");
             }
 
+            //Находим бухгалтерию
             var accounting = await userRepository.SelectOneAccounting(token);
             if (accounting == null)
             {
                 return BadRequest("Accounting not found");
             }
 
+            //Создаем заявку
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.InsertAsync(request, token);
 
+            //Добавляем бухгалтерию в список подписчиков
             request.UserSignatureDto.Add(new UserSignatureDto()
             {
                 NInQueue = -1,
@@ -179,6 +187,7 @@ namespace TimeOffTracker.Controllers
             //Сортируем по NInQueue
             request.UserSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
 
+            //Выстраиваем в правильном порядке и добавляем подписчиков в бд
             var nInQueue = 0;
             foreach (var us in request.UserSignatureDto)
             {
@@ -193,15 +202,92 @@ namespace TimeOffTracker.Controllers
             }
 
             /*
+                Отсылаем уведомление на почту
                 бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
             */
 
             return requestId;
         }
 
+        /// <summary>
+        /// GET: /Employee/GetManagers
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <returns>
+        /// [user1, user2, user3]
+        /// </returns>
+        [ProducesResponseType(200, Type = typeof(List<UserDto>))]
+        [ProducesResponseType(404)]
         [HttpGet]
-        void GetManagers()
+        public async Task<ActionResult<List<UserDto>>> GetManagers(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userRepository = new UserRepository();
+            var managers = await userRepository.SelectAllByRoleAsync(UserRoles.Manager, token);
+            var managersDto = new List<UserDto>();
+            foreach (var mDto in managers.Select(Converter.EntityToDto))
+            {
+                mDto.Login = "";
+                mDto.Password = "";
+                managersDto.Add(mDto);
+            }
+
+            return Ok(managersDto);
+        }
+
+        ///  <summary>
+        ///  GET: /Employee/GetRequestDetails?id=10
+        ///  Header
+        ///  {
+        ///      Authorization: Bearer {TOKEN}
+        ///  }
+        ///  </summary>
+        ///  <param name="id">ИД заявки</param>
+        ///  <param name="token"></param>
+        ///  <returns>
+        ///  Body
+        ///  {
+        ///      "request": {
+        ///          "id": 12,
+        ///          "requestTypeId": 1,
+        ///          "reason": "string",
+        ///          "projectRoleComment": "string",
+        ///          "projectRoleTypeId": 1,
+        ///          "userId": 3,
+        ///          "stateDetailId": 1,
+        ///          "dateTimeFrom": "2021-07-25T00:00:00",
+        ///          "dateTimeTo": "2021-07-26T00:00:00",
+        ///          "userSignatureDto": null
+        ///      },
+        ///      "userSignatures": [us1, us2, us3]
+        /// }
+        ///  </returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpGet]
+        public async Task<ActionResult<string>> GetRequestDetails([FromQuery(Name = "id")] int id,
+            CancellationToken token)
+        {
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
+            if (request == null)
+            {
+                return base.NoContent();
+            }
+
+            return Ok(new
+            {
+                Request = Converter.EntityToDto(request),
+                UserSignatures = request.UserSignatures is {Count: > 0}
+                    ? request.UserSignatures.Select(Converter.EntityToDto).ToList()
+                    : new List<UserSignatureDto>()
+            });
         }
 
 
@@ -282,12 +368,6 @@ namespace TimeOffTracker.Controllers
             return new List<RequestDto>();
         }
 
-        [HttpGet]
-        RequestDto GetRequestDetails(int id)
-        {
-            //	детальная информация о заявке
-            return new RequestDto();
-        }
 
         [HttpDelete]
         void DeleteRequest(int request_id)

@@ -187,7 +187,7 @@ namespace TimeOffTracker.Controllers
         ///     },
         /// ]
         /// </returns>
-        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(200, Type = typeof(List<EnumDto>))]
         [ProducesResponseType(404)]
         [HttpGet]
         public async Task<ActionResult<List<EnumDto>>> GetUserRoles(CancellationToken token)
@@ -213,7 +213,7 @@ namespace TimeOffTracker.Controllers
         /// </param>
         /// <param name="token"></param>
         /// <returns>true</returns>
-        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(200, Type = typeof(bool))]
         [ProducesResponseType(404)]
         [HttpPatch]
         public async Task<ActionResult<bool>> ModifyUserRole([FromBody] UserDto userDto, CancellationToken token)
