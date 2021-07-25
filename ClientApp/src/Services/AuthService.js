@@ -2,7 +2,8 @@
 
 export class AuthService {
     static isLogged() {
-        return localStorage.getItem("token") !== null;
+        if (localStorage.getItem("token") === null) return false;
+        return jwt_decode(localStorage.getItem("token"));
     }
 
     static logOut() {
@@ -10,6 +11,21 @@ export class AuthService {
             localStorage.removeItem("token");
         } catch (e) {
             console.error(e);
+        }
+    }
+    
+    static isCurrentUserRoleInList(...roleTypes) {
+        try {
+            let result = true;
+            const decodedJwtToken = jwt_decode(localStorage.getItem("token"));
+            for (const roleType in roleTypes) {
+                if (roleType !== decodedJwtToken.role) result = false;
+            }
+            return result;
+        }
+        catch (error) {
+            console.error(error);
+            return false;
         }
     }
 }
