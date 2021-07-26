@@ -12,6 +12,24 @@ namespace TimeOffTracker.Model.Repositories
 {
     public class UserSignatureRepository
     {
+        public async Task<bool> DeleteAllByRequestId(int requestId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignatures = await context.UserSignatures.Where(us =>
+                us.RequestId == requestId &&
+                us.Deleted == false
+            ).ToListAsync(token);
+
+            foreach (var us in userSignatures)
+            {
+                us.Deleted = true;
+                context.UserSignatures.Update(us);
+            }
+
+            await context.SaveChangesAsync(token);
+            return true;
+        }
+
         public async Task<List<UserSignature>> SelectAllNotApprovedByIdAsync(int id, CancellationToken token)
         {
             await using var context = new masterContext();

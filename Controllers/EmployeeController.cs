@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Query;
 using PagedList;
 using TimeOffTracker.Model.Enum;
 
@@ -35,7 +36,7 @@ namespace TimeOffTracker.Controllers
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="request">
+        /// <param name="requestDto">
         ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
         /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
         /// 
@@ -64,151 +65,26 @@ namespace TimeOffTracker.Controllers
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpPost]
-        public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto request, CancellationToken token)
+        public async Task<ActionResult<int>> СreateRequest([FromBody] RequestDto requestDto, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             //Получить текущего пользователя
-            var userId = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            request.UserId = int.Parse(userId);
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            requestDto.UserId = userId;
 
             //Если список подписчиков не задан, создаем пустой лист
-            request.UserSignatureDto ??= new List<UserSignatureDto>();
+            requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
 
-            //Статус заявки
-            request.StateDetailId = StateDetails.New;
-
-            //Проверка даты
-            var time1 = request.DateTimeFrom.Ticks - DateTime.Now.Ticks;
-            var time2 = request.DateTimeTo.Ticks - DateTime.Now.Ticks;
-            var time3 = request.DateTimeTo.Ticks - request.DateTimeFrom.Ticks;
-            if (time1 < 0 || time2 < 0)
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var result = await requestCrud.ChekAsync(requestDto, token);
+            if (result != "Ok")
             {
-                return BadRequest("The dates are in the past. Please change the dates");
+                return BadRequest(result);
             }
 
-            if (time3 < 0)
-            {
-                return BadRequest("Start date is greater than end date");
-            }
-
-            /*
-             Нужно добавить проверку на пересечение дат
-             
-             Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
-             Сообщение:”There is another request for these dates. Do you really want to create one more request?”
-             (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
-             Yes (Да)  - заявка создается
-             No (Нет) - заявка не создается
-             */
-
-            //Проверка причины отпуска на пустоту
-            if (string.IsNullOrEmpty(request.Reason))
-            {
-                return BadRequest("Reason not set");
-            }
-
-            var enumRepository = new EnumRepository();
-
-            //Проверка типа отпуска
-            if (!enumRepository.Contains(request.RequestTypeId))
-            {
-                return BadRequest("Wrong RequestType");
-            }
-
-            //Типы отпуска который должны подписать менеджеры
-            var managers = new List<RequestTypes>()
-            {
-                RequestTypes.PaidLeave,
-                RequestTypes.AdministrativeUnpaidLeave,
-                RequestTypes.StudyLeave
-            };
-            if (managers.Contains(request.RequestTypeId))
-            {
-                //Менеджер не был указан
-                if (request.UserSignatureDto.Count <= 0)
-                {
-                    return BadRequest("Manager not set");
-                }
-
-                //Не указан тип участия в проекте
-                if (!enumRepository.Contains(request.ProjectRoleTypeId))
-                {
-                    return BadRequest("Wrong ProjectRoleType");
-                }
-
-                //Не указны обязанности на проекте
-                if (string.IsNullOrEmpty(request.ProjectRoleComment))
-                {
-                    return BadRequest("ProjectRoleComment not set");
-                }
-            }
-
-            //Типы отпуска который должна подписать только бухгалтерия
-            var accountingOnly = new List<RequestTypes>()
-            {
-                RequestTypes.AdministrativeUnpaidLeave,
-                RequestTypes.SocialLeave,
-                RequestTypes.SickLeaveWithDocuments,
-                RequestTypes.SickLeaveWithoutDocuments
-            };
-            if (accountingOnly.Contains(request.RequestTypeId))
-            {
-                //Обнуляем список подписчиков
-                request.UserSignatureDto = new List<UserSignatureDto>();
-            }
-
-            var userRepository = new UserRepository();
-
-            //Проверка менеджеров на наличие в базе
-            var checkPass = await userRepository.CheckManagers(request.UserSignatureDto, token);
-            if (!checkPass)
-            {
-                return BadRequest("Wrong Manager set");
-            }
-
-            //Находим бухгалтерию
-            var accounting = await userRepository.SelectOneAccounting(token);
-            if (accounting == null)
-            {
-                return BadRequest("Accounting not found");
-            }
-
-            //Создаем заявку
-            var requestRepository = new RequestRepository();
-            var requestId = await requestRepository.InsertAsync(request, token);
-
-            //Добавляем бухгалтерию в список подписчиков
-            request.UserSignatureDto.Add(new UserSignatureDto()
-            {
-                NInQueue = -1,
-                RequestId = requestId,
-                UserId = accounting.Id
-            });
-
-            var userSignatureRepository = new UserSignatureRepository();
-
-            //Убираем менеджеров которые повторяются
-            request.UserSignatureDto = request.UserSignatureDto
-                .GroupBy(car => car.UserId)
-                .Select(g => g.First())
-                .ToList();
-
-            //Сортируем по NInQueue
-            request.UserSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
-
-            //Выстраиваем в правильном порядке и добавляем подписчиков в бд
-            var nInQueue = 0;
-            foreach (var us in request.UserSignatureDto)
-            {
-                us.NInQueue = nInQueue;
-                us.RequestId = requestId;
-                us.Approved = false;
-                us.Deleted = false;
-
-                nInQueue++;
-
-                await userSignatureRepository.InsertAsync(us, token);
-            }
+            var requestId = await requestCrud.CreateAsync(requestDto, token);
 
             /*
                 Отсылаем уведомление на почту
@@ -216,6 +92,99 @@ namespace TimeOffTracker.Controllers
             */
 
             return requestId;
+        }
+
+        /// <summary>
+        /// PUT: /Employee/EditRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="requestDto"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditNewRequest([FromBody] RequestDto requestDto, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
+            if (request is not {UserSignatures: {Count: > 0}})
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.New)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var result = await requestCrud.ChekAsync(requestDto, token);
+            if (result != "Ok")
+            {
+                return BadRequest(result);
+            }
+
+            await requestCrud.UpdateAsync(requestDto, token);
+
+            /*
+             Изменение заявки на отпуск
+                1. До первого утверждения сотрудник может полностью изменить заявку на отпуск или удалить ее.
+                
+                2. После первого утверждения, но раньше финального утверждения, 
+                сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
+                
+                3. После финального утверждения сотрудник может отменить заявку на отпуск. 
+                В этом случае отмену заявки подтверждает только бухгалтерия.
+                 
+                4. После финального утверждения сотрудник может  изменить даты заявки. 
+                В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
+                
+            Сценарии использования: Изменение заявки на отпуск
+            Изменение неутвержденной заявки (состояние “Новая”)
+                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
+                2. Пользователь видит список своих заявок.
+                3. Пользователь выбирает заявку в состоянии “Новая” (New) и нажимает  Просмотреть (View). 
+                4. Открывается страница с деталями заявки. 
+                5. Пользователь нажимает Редактировать (Edit).
+                6. Заявка становится доступна для полного редактирования (изменить можно все). После изменения в бухгалтерию отправляется повторное письмо с заявкой. 
+    
+            Изменение частично утвержденной заявки (состояние “В процессе”)
+                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
+                2. Пользователь видит список своих заявок.
+                3. Пользователь выбирает заявку в состоянии “В процессе” (In progress) и нажимает Просмотреть (View). 
+                4. Открывается страница с деталями заявки. 
+                5. Пользователь нажимает Редактировать (Edit).
+                6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
+                    a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
+                    b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
+            
+            Изменение полностью утвержденной заявки (состояние  “Утверждена”)
+                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
+                2. Пользователь видит список своих заявок.
+                3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
+                4. Открывается страница с деталями заявки. 
+                5. Пользователь нажимает Редактировать (Edit).
+                6. Появляется сообщение: “Do you really want to edit the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
+                7. Если пользователь нажимает Да, заявка открывается для редактирования. 
+                8. Пользователь может поменять:
+                    a. Даты
+                    b. Причину
+                    c. Людей подтверждающих заявку 
+                9. После того, как пользователь нажал Сохранить:
+                    a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
+                    b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
+            */
+            return Ok();
         }
 
         /// <summary>
@@ -298,70 +267,6 @@ namespace TimeOffTracker.Controllers
                     ? request.UserSignatures.Select(Converter.EntityToDto).ToList()
                     : new List<UserSignatureDto>()
             });
-        }
-
-        /// <summary>
-        /// PUT: /Employee/EditRequest
-        /// Header
-        /// {
-        ///     Authorization: Bearer {TOKEN}
-        /// }
-        /// </summary>
-        /// <param name="requestDto"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        [ProducesResponseType(200, Type = typeof(int))]
-        [ProducesResponseType(404)]
-        [HttpPut]
-        public async Task<ActionResult<int>> EditRequest([FromBody] RequestDto request, CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            var userId = int.Parse(userIdStr);
-
-            /*
-             Изменение заявки на отпуск
-                1. До первого утверждения сотрудник может полностью изменить заявку на отпуск или удалить ее.
-                2. После первого утверждения, но раньше финального утверждения, сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
-                3. После финального утверждения сотрудник может отменить заявку на отпуск. В этом случае отмену заявки подтверждает только бухгалтерия. 
-                4. После финального утверждения сотрудник может  изменить даты заявки. В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
-                
-            Сценарии использования: Изменение заявки на отпуск
-            Изменение неутвержденной заявки (состояние “Новая”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в состоянии “Новая” (New) и нажимает  Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
-                6. Заявка становится доступна для полного редактирования (изменить можно все). После изменения в бухгалтерию отправляется повторное письмо с заявкой. 
-    
-            Изменение частично утвержденной заявки (состояние “В процессе”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в состоянии “В процессе” (In progress) и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
-                6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
-                    a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
-                    b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
-            
-            Изменение полностью утвержденной заявки (состояние  “Утверждена”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
-                6. Появляется сообщение: “Do you really want to edit the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка открывается для редактирования. 
-                8. Пользователь может поменять:
-                    a. Даты
-                    b. Причину
-                    c. Людей подтверждающих заявку 
-                9. После того, как пользователь нажал Сохранить:
-                    a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
-                    b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
-            */
-            return Ok();
         }
 
         /// <summary>

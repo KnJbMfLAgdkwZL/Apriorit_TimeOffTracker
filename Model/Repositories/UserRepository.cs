@@ -77,26 +77,6 @@ namespace TimeOffTracker.Model.Repositories
             return await context.Users.Where(u => u.RoleId == 2 && u.Deleted == false).FirstOrDefaultAsync(token);
         }
 
-        public async Task<bool> CheckManagers(List<UserSignatureDto> managers, CancellationToken token)
-        {
-            foreach (var us in managers)
-            {
-                var user = await SelectByIdAsync(us.UserId, token);
-
-                if (user == null)
-                {
-                    return false;
-                }
-
-                if (user.RoleId != (int) UserRoles.Manager)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         public async Task<List<User>> SelectAllByRoleAsync(UserRoles role, CancellationToken token)
         {
             await using var context = new masterContext();

@@ -19,14 +19,46 @@ namespace TimeOffTracker.Model.Repositories
             return request.Id;
         }
 
+        public async Task<int> UpdateAsync(RequestDto requestDto, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var request = Converter.DtoToEntity(requestDto);
+            context.Requests.Update(request);
+            await context.SaveChangesAsync(token);
+            return request.Id;
+        }
+
         public async Task<Request> SelectByIdAndUserIdAsync(int id, int userId, CancellationToken token)
         {
             await using var context = new masterContext();
             return await context.Requests
-                .Where(r => r.Id == id && r.UserId == userId && r.StateDetailId != (int) StateDetails.Deleted)
+                .Where(r => r.Id == id &&
+                            r.UserId == userId &&
+                            r.StateDetailId != (int) StateDetails.Deleted &&
+                            r.StateDetailId != (int) StateDetails.DeclinedByOwner
+                )
                 .Include(r => r.UserSignatures
                     .Where(us => us.Deleted == false))
                 .FirstOrDefaultAsync(token);
+        }
+
+        public async Task<bool> DeleteOwnerByIdAsync(int id, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var requests = await context.Requests.Where(r =>
+                r.Id == id &&
+                r.StateDetailId != (int) StateDetails.Deleted &&
+                r.StateDetailId != (int) StateDetails.DeclinedByOwner
+            ).ToListAsync(token);
+
+            foreach (var r in requests)
+            {
+                r.StateDetailId = (int) StateDetails.DeclinedByOwner;
+                context.Requests.Update(r);
+            }
+
+            await context.SaveChangesAsync(token);
+            return true;
         }
     }
 }
