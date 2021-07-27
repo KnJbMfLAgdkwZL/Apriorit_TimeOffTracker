@@ -139,7 +139,26 @@ namespace TimeOffTracker.Controllers
             await requestCrud.UpdateAsync(requestDto, token);
             return Ok();
         }
-        
+
+        /// <summary>
+        /// PUT: /Employee/EditInProgressRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="requestDto"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditInProgressRequest([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            return 0;
+        }
+
         /*
              Изменение заявки на отпуск
                 3. После финального утверждения сотрудник может отменить заявку на отпуск. 
@@ -207,10 +226,9 @@ namespace TimeOffTracker.Controllers
             var requestCrud = new TimeOffTracker.CRUD.Request();
             await requestCrud.DeleteOwner(id, token);
             return Ok();
-            
+        }
 
-
-            /*
+        /*
              Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
                 3. Пользователь выбирает заявку в состоянии 
                     “Утверждена” (Approved) или 
@@ -224,11 +242,8 @@ namespace TimeOffTracker.Controllers
                 В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
                 8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
             */
-            //if request.StateDetailId == 1, New
-            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
-            
-        }
-
+        //if request.StateDetailId == 1, New
+        //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
 
         /// <summary>
         /// GET: /Employee/GetManagers
@@ -384,8 +399,7 @@ namespace TimeOffTracker.Controllers
             #1#
             return Ok();
         }*/
-
-
+        
         /*
         /// <summary>
         /// GET: /Employee/GetDays
@@ -410,5 +424,6 @@ namespace TimeOffTracker.Controllers
              #1#
             return Ok();
         }*/
+        
     }
 }
