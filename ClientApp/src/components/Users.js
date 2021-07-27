@@ -4,6 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import Select from 'react-select';
 import DataGrid from "react-data-grid"
 import {RequestSendingService} from "../Services/RequestSendingService";
+import {Link} from "react-router-dom";
 
 const URL = "http://localhost:5000/";
 
@@ -55,14 +56,14 @@ export class Users extends Component {
     _handleEmailChange = selectedEmailOption => {
         this.setState({selectedEmailOption});
     };
-
+    
     async componentDidMount(): Promise<void> {
         this.setState({
             selectedNameOption: this.state.nameOptions[0],
             selectedEmailOption: this.state.emailOptions[0],
             selectedRoleOption: roleOptions[0]
         });
-        
+
         await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/GetUsers?page=1&pageSize=10000", {})
             .then(async response => {
                 if (response.status === 200) {
@@ -86,8 +87,7 @@ export class Users extends Component {
                             });
                         });
                         this.setState({});
-                    }
-                    catch (error) {
+                    } catch (error) {
                         console.error(error);
                     }
                 }
@@ -168,6 +168,31 @@ export class Users extends Component {
                     columns={columns}
                     rows={this.state.rows}
                 />
+                <Container className="mt-3">
+                    <Row>
+                        <Col>
+                            <center><p><strong>
+                                Stage Of Creation
+                            </strong></p></center>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col/>
+                        <Col>
+                            <center>
+                                <Link to="/createUser" style={{ textDecoration: 'none' }}>
+                                    <Button
+                                        outline
+                                        block
+                                        color="success">
+                                        New User
+                                    </Button>
+                                </Link>
+                            </center>
+                        </Col>
+                        <Col/>
+                    </Row>
+                </Container>
             </div>
         );
     }
