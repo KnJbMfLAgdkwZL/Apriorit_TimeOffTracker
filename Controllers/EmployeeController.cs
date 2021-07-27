@@ -95,7 +95,7 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
-        /// PUT: /Employee/EditRequest
+        /// PUT: /Employee/EditNewRequest
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -109,6 +109,8 @@ namespace TimeOffTracker.Controllers
         [HttpPut]
         public async Task<ActionResult<int>> EditNewRequest([FromBody] RequestDto requestDto, CancellationToken token)
         {
+            //До первого утверждения сотрудник может полностью изменить заявку на отпуск
+
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
@@ -135,45 +137,28 @@ namespace TimeOffTracker.Controllers
             }
 
             await requestCrud.UpdateAsync(requestDto, token);
-
-            /*
+            return Ok();
+        }
+        
+        /*
              Изменение заявки на отпуск
-                1. До первого утверждения сотрудник может полностью изменить заявку на отпуск или удалить ее.
-                
-                2. После первого утверждения, но раньше финального утверждения, 
-                сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
-                
                 3. После финального утверждения сотрудник может отменить заявку на отпуск. 
                 В этом случае отмену заявки подтверждает только бухгалтерия.
-                 
-                4. После финального утверждения сотрудник может  изменить даты заявки. 
-                В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
                 
-            Сценарии использования: Изменение заявки на отпуск
-            Изменение неутвержденной заявки (состояние “Новая”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
-                3. Пользователь выбирает заявку в состоянии “Новая” (New) и нажимает  Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
-                6. Заявка становится доступна для полного редактирования (изменить можно все). После изменения в бухгалтерию отправляется повторное письмо с заявкой. 
-    
             Изменение частично утвержденной заявки (состояние “В процессе”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
+                2. После первого утверждения, но раньше финального утверждения, 
+                сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
+            
                 3. Пользователь выбирает заявку в состоянии “В процессе” (In progress) и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
                 6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
                     a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
                     b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
             
             Изменение полностью утвержденной заявки (состояние  “Утверждена”)
-                1. Пользователь входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список своих заявок.
+                4. После финального утверждения сотрудник может  изменить даты заявки. 
+                В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
+                
                 3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Редактировать (Edit).
                 6. Появляется сообщение: “Do you really want to edit the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
                 7. Если пользователь нажимает Да, заявка открывается для редактирования. 
                 8. Пользователь может поменять:
@@ -184,8 +169,66 @@ namespace TimeOffTracker.Controllers
                     a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
                     b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
             */
+
+        /// <summary>
+        /// DELETE: /Employee/DeleteNewRequest?id=12
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpDelete]
+        public async Task<ActionResult<string>> DeleteNewRequest([FromQuery(Name = "id")] int id,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.New)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            await requestCrud.DeleteOwner(id, token);
             return Ok();
+            
+
+
+            /*
+             Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
+                3. Пользователь выбирает заявку в состоянии 
+                    “Утверждена” (Approved) или 
+                    “В процессе” (In progress), 
+                    у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
+                4. Открывается страница с деталями заявки. 
+                5. Пользователь нажимает Отменить (Decline).
+                6. Появляется сообщение: “Do you really want to decline the approved request?” 
+                (“Вы действительно хотите изменить утвержденную заявку?”)
+                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
+                В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
+                8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
+            */
+            //if request.StateDetailId == 1, New
+            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
+            
         }
+
 
         /// <summary>
         /// GET: /Employee/GetManagers
@@ -269,7 +312,7 @@ namespace TimeOffTracker.Controllers
             });
         }
 
-        /// <summary>
+        /*/// <summary>
         /// PUT: /Employee/EditRequestUserSignature
         /// Header
         /// {
@@ -292,9 +335,9 @@ namespace TimeOffTracker.Controllers
             var userId = int.Parse(userIdStr);
 
             return Ok();
-        }
+        }*/
 
-        /// <summary>
+        /*/// <summary>
         /// POST: /Employee/GetRequests?page=3&pageSize=10
         /// Header
         /// {
@@ -338,48 +381,12 @@ namespace TimeOffTracker.Controllers
             //	Если фильтр filter == null то вернуть всех
             //	иначе вернуть похожие по указаному фильтру
             //	выводить старницами, по 10 елементов на страницу
-            */
+            #1#
             return Ok();
-        }
+        }*/
 
-        /// <summary>
-        /// DELETE: /Employee/DeleteRequest
-        /// Header
-        /// {
-        ///     Authorization: Bearer {TOKEN}
-        /// }
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        [ProducesResponseType(200, Type = typeof(string))]
-        [ProducesResponseType(404)]
-        [HttpDelete]
-        public async Task<ActionResult<string>> DeleteRequest([FromQuery(Name = "id")] int id, CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            var userId = int.Parse(userIdStr);
 
-            /*
-             Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
-                3. Пользователь выбирает заявку в состоянии 
-                    “Утверждена” (Approved) или 
-                    “В процессе” (In progress), 
-                    у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Отменить (Decline).
-                6. Появляется сообщение: “Do you really want to decline the approved request?” 
-                (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
-                В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
-                8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
-            */
-            //if request.StateDetailId == 1, New
-            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
-            return Ok();
-        }
-
+        /*
         /// <summary>
         /// GET: /Employee/GetDays
         /// Header
@@ -400,11 +407,8 @@ namespace TimeOffTracker.Controllers
 
             /*
                 Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.
-             */
+             #1#
             return Ok();
-        }
-        //	Наверно нужно создать еще свои пользовательские ошибки?
-        //  И кидать когда нужно, что бы потом обработчик ошибок в midelwares их записал в лог
-        //  и выдал потом нужный Http статус?
+        }*/
     }
 }

@@ -71,7 +71,7 @@ namespace TimeOffTracker.CRUD
         public async Task<int> UpdateAsync(RequestDto requestDto, CancellationToken token)
         {
             var userSignatureRepository = new UserSignatureRepository();
-            var r1 = await userSignatureRepository.DeleteAllByRequestId(requestDto.Id, token);
+            await userSignatureRepository.DeleteAllAsync(requestDto.Id, token);
 
             var userRepository = new UserRepository();
 
@@ -99,6 +99,9 @@ namespace TimeOffTracker.CRUD
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.UpdateAsync(requestDto, token);
 
+            //Удаляем старых подписчиков
+            await userSignatureRepository.DeleteAllAsync(requestId, token);
+
             //Задаем NInQueue в правильном порядке и добавляем подписчиков в бд
             var nInQueue = 0;
             foreach (var us in requestDto.UserSignatureDto)
@@ -114,16 +117,16 @@ namespace TimeOffTracker.CRUD
             return requestDto.Id;
         }
 
-        /*public async Task<bool> Delete(int requestId, CancellationToken token)
+        public async Task DeleteOwner(int requestId, CancellationToken token)
         {
             var userSignatureRepository = new UserSignatureRepository();
-            var r1 = await userSignatureRepository.DeleteAllByRequestId(requestId, token);
+            await userSignatureRepository.DeleteAllAsync(requestId, token);
 
             var requestRepository = new RequestRepository();
-            var r2 = await requestRepository.DeleteOwnerByIdAsync(requestId, token);
+            await requestRepository.DeleteOwnerAsync(requestId, token);
+        }
 
-            return r1 && r2;
-        }*/
+
         public async Task<bool> CheckManagersAsync(List<UserSignatureDto> managers, CancellationToken token)
         {
             var userRepository = new UserRepository();

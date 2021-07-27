@@ -42,7 +42,7 @@ namespace TimeOffTracker.Model.Repositories
                 .FirstOrDefaultAsync(token);
         }
 
-        public async Task<bool> DeleteOwnerByIdAsync(int id, CancellationToken token)
+        public async Task DeleteOwnerAsync(int id, CancellationToken token)
         {
             await using var context = new masterContext();
             var requests = await context.Requests.Where(r =>
@@ -58,7 +58,6 @@ namespace TimeOffTracker.Model.Repositories
             }
 
             await context.SaveChangesAsync(token);
-            return true;
         }
     }
 }
