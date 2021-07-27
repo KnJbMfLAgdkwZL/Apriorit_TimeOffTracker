@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,14 +33,34 @@ namespace TimeOffTracker.Model.Repositories
         {
             await using var context = new masterContext();
             return await context.Requests
-                .Where(r => r.Id == id &&
-                            r.UserId == userId &&
-                            r.StateDetailId != (int) StateDetails.Deleted &&
-                            r.StateDetailId != (int) StateDetails.DeclinedByOwner
+                .Where(r =>
+                    r.Id == id &&
+                    r.UserId == userId &&
+                    r.StateDetailId != (int) StateDetails.Deleted &&
+                    r.StateDetailId != (int) StateDetails.DeclinedByOwner
                 )
                 .Include(r => r.UserSignatures
                     .Where(us => us.Deleted == false))
                 .FirstOrDefaultAsync(token);
+        }
+
+        public async Task<Request> CheckDateCollision(RequestDto request, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests
+                .Where(r =>
+                    r.UserId == request.UserId &&
+                    r.StateDetailId != (int) StateDetails.Deleted &&
+                    r.StateDetailId != (int) StateDetails.DeclinedByOwner &&
+                    r.DateTimeTo >= DateTime.Now &&
+                    (
+                        r.DateTimeFrom <= request.DateTimeFrom &&
+                        request.DateTimeFrom <= r.DateTimeTo
+                        ||
+                        r.DateTimeFrom <= request.DateTimeTo &&
+                        request.DateTimeTo <= r.DateTimeTo
+                    )
+                ).FirstOrDefaultAsync(token);
         }
 
         public async Task DeleteOwnerAsync(int id, CancellationToken token)

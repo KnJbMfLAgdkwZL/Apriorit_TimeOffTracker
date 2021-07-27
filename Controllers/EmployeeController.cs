@@ -78,10 +78,10 @@ namespace TimeOffTracker.Controllers
             requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekAsync(requestDto, token);
-            if (result != "Ok")
+            var chek = await requestCrud.ChekAsync(requestDto, token);
+            if (chek != "Ok")
             {
-                return BadRequest(result);
+                return BadRequest(chek);
             }
 
             var requestId = await requestCrud.CreateAsync(requestDto, token);
@@ -92,6 +92,22 @@ namespace TimeOffTracker.Controllers
             */
 
             return requestId;
+        }
+
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPost]
+        public async Task<ActionResult<string>> CheckDateCollision([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.CheckDateCollision(requestDto, token);
+            if (request != null)
+            {
+                return BadRequest("There is another request for these dates.");
+            }
+
+            return Ok("Ok");
         }
 
         /// <summary>
@@ -156,14 +172,29 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<int>> EditInProgressRequest([FromBody] RequestDto requestDto,
             CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.InProgress)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+
             return 0;
         }
 
         /*
-             Изменение заявки на отпуск
-                3. После финального утверждения сотрудник может отменить заявку на отпуск. 
-                В этом случае отмену заявки подтверждает только бухгалтерия.
-                
             Изменение частично утвержденной заявки (состояние “В процессе”)
                 2. После первого утверждения, но раньше финального утверждения, 
                 сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
@@ -172,7 +203,7 @@ namespace TimeOffTracker.Controllers
                 6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
                     a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
                     b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
-            
+
             Изменение полностью утвержденной заявки (состояние  “Утверждена”)
                 4. После финального утверждения сотрудник может  изменить даты заявки. 
                 В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
@@ -229,7 +260,11 @@ namespace TimeOffTracker.Controllers
         }
 
         /*
-             Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
+            Изменение заявки на отпуск
+                3. После финального утверждения сотрудник может отменить заявку на отпуск. 
+                В этом случае отмену заявки подтверждает только бухгалтерия.
+                
+            Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
                 3. Пользователь выбирает заявку в состоянии 
                     “Утверждена” (Approved) или 
                     “В процессе” (In progress), 
@@ -399,7 +434,7 @@ namespace TimeOffTracker.Controllers
             #1#
             return Ok();
         }*/
-        
+
         /*
         /// <summary>
         /// GET: /Employee/GetDays
@@ -424,6 +459,5 @@ namespace TimeOffTracker.Controllers
              #1#
             return Ok();
         }*/
-        
     }
 }

@@ -126,7 +126,6 @@ namespace TimeOffTracker.CRUD
             await requestRepository.DeleteOwnerAsync(requestId, token);
         }
 
-
         public async Task<bool> CheckManagersAsync(List<UserSignatureDto> managers, CancellationToken token)
         {
             var userRepository = new UserRepository();
@@ -162,16 +161,6 @@ namespace TimeOffTracker.CRUD
             {
                 return "Start date is greater than end date";
             }
-
-            /*
-             Нужно добавить проверку на пересечение дат
-             
-             Пользователь выбрал даты, которые пересекаются с уже существующей заявкой на отпуск (утвержденной или в процессе)
-             Сообщение:”There is another request for these dates. Do you really want to create one more request?”
-             (“Есть другая  заявка на эти даты. Вы хотите создать еще одну заявку?”)
-             Yes (Да)  - заявка создается
-             No (Нет) - заявка не создается
-             */
 
             //Проверка причины отпуска на пустоту
             if (string.IsNullOrEmpty(requestDto.Reason))
