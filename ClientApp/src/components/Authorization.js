@@ -1,13 +1,10 @@
 ﻿import React, {Component} from 'react';
-import Button from '@material-ui/core/Button';
-import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
 import {AuthService} from "../Services/AuthService";
-import '../custom.css'
+import {Button} from "reactstrap";
 import {RequestSendingService} from "../Services/RequestSendingService";
-import {fiFI} from "@material-ui/core/locale";
 
 const URL = "http://localhost:5000/"
 
@@ -86,9 +83,8 @@ export class Authorization extends Component {
     render() {
         return (
             <Container component="main" maxWidth="xs">
-                <CssBaseline/>
                 <div>
-                    <Typography component="h1" variant="h5">
+                    <Typography component="h1" variant="h5" align="center">
                         Sign in {this.state.errorState && "again please..."}
                     </Typography>
                     <form noValidate>
@@ -124,20 +120,21 @@ export class Authorization extends Component {
                         {!AuthService.isLogged() &&
                         <Button
                             onClick={this._sendPostRequest}
-                            fullWidth
-                            variant="contained"
+                            outline
                             color="primary"
-                            className="mt-1">
+                            block
+                            className="mt-2">
                             {this.state.isLoading ? "Signin In..." : "Sign In"}
                         </Button>
                         }
                         {AuthService.isLogged() &&
                         <Button
+                            className="mt-2"
                             onClick={this._logOut}
-                            fullWidth
-                            variant="outlined"
+                            outline
                             color="primary"
-                            className="mt-2">
+                            block
+                            disabled={this.state.isLoading}>
                             {this.state.isLoading ? "Logging out..." : "Log out"}
                         </Button>
                         }
