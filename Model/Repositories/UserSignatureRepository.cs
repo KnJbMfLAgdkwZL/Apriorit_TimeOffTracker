@@ -12,6 +12,39 @@ namespace TimeOffTracker.Model.Repositories
 {
     public class UserSignatureRepository
     {
+        public async Task DeleteAllAsync(int requestId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignatures = await context.UserSignatures.Where(us =>
+                us.RequestId == requestId &&
+                us.Deleted == false
+            ).ToListAsync(token);
+            foreach (var us in userSignatures)
+            {
+                us.Deleted = true;
+                context.UserSignatures.Update(us);
+            }
+
+            await context.SaveChangesAsync(token);
+        }
+
+        public async Task DeleteAllNotApprovedAsync(int requestId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignatures = await context.UserSignatures.Where(us =>
+                us.RequestId == requestId &&
+                us.Approved == false &&
+                us.Deleted == false
+            ).ToListAsync(token);
+            foreach (var us in userSignatures)
+            {
+                us.Deleted = true;
+                context.UserSignatures.Update(us);
+            }
+
+            await context.SaveChangesAsync(token);
+        }
+
         public async Task<List<UserSignature>> SelectAllNotApprovedByIdAsync(int id, CancellationToken token)
         {
             await using var context = new masterContext();
@@ -103,6 +136,15 @@ namespace TimeOffTracker.Model.Repositories
 
             await context.SaveChangesAsync(token);
             return true;
+        }
+
+        public async Task<int> InsertAsync(UserSignatureDto userSignatureDto, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignature = Converter.DtoToEntity(userSignatureDto);
+            await context.UserSignatures.AddAsync(userSignature, token);
+            await context.SaveChangesAsync(token);
+            return userSignature.Id;
         }
     }
 }
