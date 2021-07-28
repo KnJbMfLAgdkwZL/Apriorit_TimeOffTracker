@@ -55,6 +55,8 @@ namespace TimeOffTracker
                 }
             );
 
+            var configurationSectionEmailService = Configuration.GetSection("Email");
+            services.Configure<EmailOptions>(configurationSectionEmailService);
 
             services.AddCors(options =>
             {
