@@ -91,6 +91,8 @@ namespace TimeOffTracker.Controllers
                 бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
             */
 
+            // SendMaill
+
             return requestId;
         }
 
@@ -153,6 +155,9 @@ namespace TimeOffTracker.Controllers
             }
 
             await requestCrud.UpdateAsync(requestDto, token);
+
+            // SendMaill
+
             return Ok();
         }
 
@@ -172,6 +177,10 @@ namespace TimeOffTracker.Controllers
         public async Task<ActionResult<int>> EditInProgressRequest([FromBody] RequestDto requestDto,
             CancellationToken token)
         {
+            //Изменение частично утвержденной заявки (состояние “В процессе”)
+            //После первого утверждения, но раньше финального утверждения,
+            //сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
+
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
@@ -190,20 +199,25 @@ namespace TimeOffTracker.Controllers
                 return BadRequest($"Request.State: {state.Type}");
             }
 
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var checkPass = await requestCrud.CheckManagersAsync(requestDto.UserSignatureDto, token);
+            if (!checkPass)
+            {
+                return BadRequest("Wrong Manager set");
+            }
 
-            return 0;
+            var userSignatureRepository = new UserSignatureRepository();
+
+            await userSignatureRepository.DeleteAllNotApprovedAsync(requestDto.Id, token);
+            await requestCrud.AddUserSignature(requestDto.UserSignatureDto, requestDto.Id, 0, token);
+
+            // SendMaill
+
+            return Ok(requestDto.Id);
         }
 
         /*
-            Изменение частично утвержденной заявки (состояние “В процессе”)
-                2. После первого утверждения, но раньше финального утверждения, 
-                сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
-            
-                3. Пользователь выбирает заявку в состоянии “В процессе” (In progress) и нажимает Просмотреть (View). 
-                6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
-                    a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
-                    b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
-
+                
             Изменение полностью утвержденной заявки (состояние  “Утверждена”)
                 4. После финального утверждения сотрудник может  изменить даты заявки. 
                 В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
@@ -277,8 +291,6 @@ namespace TimeOffTracker.Controllers
                 В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
                 8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
             */
-        //if request.StateDetailId == 1, New
-        //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
 
         /// <summary>
         /// GET: /Employee/GetManagers

@@ -56,6 +56,16 @@ namespace TimeOffTracker.Model.Repositories
             return userSignatures;
         }
 
+        public async Task<UserSignature> SelectOneAsync(int userId, int requestId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.UserSignatures.Where(us =>
+                us.UserId == userId &&
+                us.RequestId == requestId &&
+                us.Deleted == false
+            ).FirstOrDefaultAsync(token);
+        }
+
         public async Task<bool> ConfirmOrRemoveAllManagerSignaturesAsync(int userId, CancellationToken token)
         {
             //Этот метод нуждается в тестировании

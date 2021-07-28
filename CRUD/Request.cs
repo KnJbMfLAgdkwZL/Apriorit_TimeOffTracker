@@ -42,28 +42,12 @@ namespace TimeOffTracker.CRUD
                 NInQueue = -1,
                 UserId = accounting.Id
             });
-            //Убираем менеджеров которые повторяются
-            requestDto.UserSignatureDto = requestDto.UserSignatureDto
-                .GroupBy(car => car.UserId)
-                .Select(g => g.First())
-                .ToList();
-            //Сортируем по NInQueue
-            requestDto.UserSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
+
             //Создаем заявку
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.InsertAsync(requestDto, token);
-            var userSignatureRepository = new UserSignatureRepository();
-            //Задаем NInQueue в правильном порядке и добавляем подписчиков в бд
-            var nInQueue = 0;
-            foreach (var us in requestDto.UserSignatureDto)
-            {
-                us.NInQueue = nInQueue;
-                us.RequestId = requestId;
-                us.Approved = false;
-                us.Deleted = false;
-                nInQueue++;
-                await userSignatureRepository.InsertAsync(us, token);
-            }
+
+            await AddUserSignature(requestDto.UserSignatureDto, requestId, 0, token);
 
             return requestId;
         }
@@ -87,13 +71,6 @@ namespace TimeOffTracker.CRUD
                 NInQueue = -1,
                 UserId = accounting.Id
             });
-            //Убираем менеджеров которые повторяются
-            requestDto.UserSignatureDto = requestDto.UserSignatureDto
-                .GroupBy(car => car.UserId)
-                .Select(g => g.First())
-                .ToList();
-            //Сортируем по NInQueue
-            requestDto.UserSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
 
             //Обновляем заявку
             var requestRepository = new RequestRepository();
@@ -102,19 +79,39 @@ namespace TimeOffTracker.CRUD
             //Удаляем старых подписчиков
             await userSignatureRepository.DeleteAllAsync(requestId, token);
 
+            await AddUserSignature(requestDto.UserSignatureDto, requestId, 0, token);
+
+            return requestDto.Id;
+        }
+
+        public async Task AddUserSignature(List<UserSignatureDto> userSignatureDto, int requestId, int nInQueue,
+            CancellationToken token)
+        {
+            //Убираем менеджеров которые повторяются
+            userSignatureDto = userSignatureDto
+                .GroupBy(car => car.UserId)
+                .Select(g => g.First())
+                .ToList();
+
+            //Сортируем по NInQueue
+            userSignatureDto.Sort((x, y) => x.NInQueue.CompareTo(y.NInQueue));
+
+            var userSignatureRepository = new UserSignatureRepository();
             //Задаем NInQueue в правильном порядке и добавляем подписчиков в бд
-            var nInQueue = 0;
-            foreach (var us in requestDto.UserSignatureDto)
+            foreach (var us in userSignatureDto)
             {
                 us.NInQueue = nInQueue;
                 us.RequestId = requestId;
                 us.Approved = false;
                 us.Deleted = false;
                 nInQueue++;
-                await userSignatureRepository.InsertAsync(us, token);
-            }
 
-            return requestDto.Id;
+                var userSignature = await userSignatureRepository.SelectOneAsync(us.UserId, us.RequestId, token);
+                if (userSignature == null)
+                {
+                    await userSignatureRepository.InsertAsync(us, token);
+                }
+            }
         }
 
         public async Task DeleteOwner(int requestId, CancellationToken token)
