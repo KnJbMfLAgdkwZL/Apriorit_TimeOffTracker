@@ -8,8 +8,8 @@ import {Link} from "react-router-dom";
 const URL = "http://localhost:5000/";
 
 const roleOptions = [
-    {value: '3', label: 'Manager'},
-    {value: '4', label: 'Employee'}
+    {value: '4', label: 'Manager'},
+    {value: '3', label: 'Employee'}
 ];
 
 export class CreateUser extends Component {
@@ -24,14 +24,18 @@ export class CreateUser extends Component {
             textFieldPasswordValue: "",
             textFieldFirstNameValue: "",
             textFieldSecondNameValue: "",
-            selectedRoleOption: null,
+            selectedRoleOption: roleOptions[1],
+            add: false,
+            error: false,
+            loading: false
         };
-        
+
         this._handleTextFiledEmailChange = this._handleTextFiledEmailChange.bind(this);
         this._handleTextFiledLoginChange = this._handleTextFiledLoginChange.bind(this);
         this._handleTextFiledPasswordChange = this._handleTextFiledPasswordChange.bind(this);
         this._handleTextFiledFirstNameChange = this._handleTextFiledFirstNameChange.bind(this);
         this._handleTextFiledSecondNameChange = this._handleTextFiledSecondNameChange.bind(this);
+        this._createUser = this._createUser.bind(this);
     }
 
     render() {
@@ -41,7 +45,9 @@ export class CreateUser extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                User creation page
+                                {!this.state.add && !this.state.error && "User creation page"}
+                                {this.state.add && <font color="green"> User was successfully created!</font>}
+                                {this.state.error && <font color="red"> Something went wrong!</font>}
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -53,8 +59,11 @@ export class CreateUser extends Component {
                                 margin="normal"
                                 required
                                 fullWidth
+                                id="Email"
+                                name="Email"
                                 label="Email"
                                 autoFocus
+                                error={this.state.error}
                             />
                         </Col>
                         <Col>
@@ -66,6 +75,7 @@ export class CreateUser extends Component {
                                 fullWidth
                                 label="Login"
                                 autoFocus
+                                error={this.state.error}
                             />
                         </Col>
                         <Col>
@@ -77,6 +87,7 @@ export class CreateUser extends Component {
                                 fullWidth
                                 label="Password"
                                 autoFocus
+                                error={this.state.error}
                             />
                         </Col>
                     </Row>
@@ -92,6 +103,7 @@ export class CreateUser extends Component {
                                 fullWidth
                                 label="First Name"
                                 autoFocus
+                                error={this.state.error}
                             />
                         </Col>
                         <Col>
@@ -103,6 +115,7 @@ export class CreateUser extends Component {
                                 fullWidth
                                 label="Second Name"
                                 autoFocus
+                                error={this.state.error}
                             />
                         </Col>
                         <Col>
@@ -129,11 +142,30 @@ export class CreateUser extends Component {
                             <center>
                                 <Button
                                     onClick={this._createUser}
+                                    disabled={this.state.loading}
                                     outline
                                     block
                                     color="success">
-                                    Create
+                                    {!this.state.loading ? "Create" : "Loading..."}
                                 </Button>
+                            </center>
+                        </Col>
+                        <Col/>
+                    </Row>
+                </Container>
+                <Container className="mt-3">
+                    <Row>
+                        <Col/>
+                        <Col>
+                            <center>
+                                <Link to="/" style={{textDecoration: 'none'}}>
+                                    <Button
+                                        outline
+                                        block
+                                        color="info">
+                                        To Users Page
+                                    </Button>
+                                </Link>
                             </center>
                         </Col>
                         <Col/>
@@ -142,9 +174,42 @@ export class CreateUser extends Component {
             </div>
         );
     }
-    
-    _createUser() {
-        // RequestSendingService.sendPostRequestAuthorized(URL, )
+
+    async _createUser() {
+        this.setState({
+            loading: true,
+        })
+        await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/CreateUser", {
+            "email": this.state.textFieldEmailValue,
+            "login": this.state.textFieldLoginValue,
+            "firstName": this.state.textFieldFirstNameValue,
+            "secondName": this.state.textFieldSecondNameValue,
+            "password": this.state.textFieldPasswordValue,
+            "roleId": parseInt(this.state.selectedRoleOption.value)
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    this.setState({
+                        add: true,
+                        error: false,
+                        loading: false
+                    })
+                    this._cleanSendBodyStates();
+                } else {
+                    this.setState({
+                        add: false,
+                        error: true,
+                        loading: false
+                    })
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                this.setState({
+                    error: true,
+                    loading: false,
+                })
+            })
     }
 
     _handleTextFiledEmailChange(e) {
@@ -180,4 +245,15 @@ export class CreateUser extends Component {
     _handleRoleChange = selectedRoleOption => {
         this.setState({selectedRoleOption});
     };
+
+    _cleanSendBodyStates() {
+        this.setState({
+            textFieldEmailValue: "",
+            textFieldLoginValue: "",
+            textFieldPasswordValue: "",
+            textFieldFirstNameValue: "",
+            textFieldSecondNameValue: "",
+            selectedRoleOption: roleOptions[1],
+        });
+    }
 }
