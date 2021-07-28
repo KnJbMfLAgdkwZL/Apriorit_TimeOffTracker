@@ -11,6 +11,18 @@ namespace TimeOffTracker.Model.Repositories
 {
     public class RequestRepository
     {
+        public async Task<List<Request>> SelectAllAsync(RequestDto filter, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests.Where(r =>
+                r.UserId == filter.UserId &&
+                r.RequestTypeId == (int) filter.RequestTypeId &&
+                r.StateDetailId == (int) filter.StateDetailId &&
+                EF.Functions.Like(r.Reason, $"%{filter.Reason}%")
+            ).ToListAsync(token);
+        }
+
+
         public async Task<int> InsertAsync(RequestDto requestDto, CancellationToken token)
         {
             await using var context = new masterContext();
@@ -79,6 +91,27 @@ namespace TimeOffTracker.Model.Repositories
             }
 
             await context.SaveChangesAsync(token);
+        }
+
+        public async Task<TimeSpan> GetDays(int userId, int requestTypesId, CancellationToken token)
+        {
+            var beginYear = new DateTime(DateTime.Now.Year, 1, 1);
+
+            await using var context = new masterContext();
+            var requests = await context.Requests.Where(r =>
+                r.UserId == userId &&
+                r.RequestTypeId == requestTypesId &&
+                r.StateDetailId == (int) StateDetails.Approved &&
+                r.DateTimeFrom >= beginYear
+            ).Select(r => r.DateTimeTo - r.DateTimeFrom).ToListAsync(token);
+
+            var sum = new TimeSpan(0, 0, 0, 0, 0);
+            foreach (var r in requests)
+            {
+                sum += r;
+            }
+
+            return sum;
         }
     }
 }

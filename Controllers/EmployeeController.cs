@@ -414,7 +414,7 @@ namespace TimeOffTracker.Controllers
             });
         }
 
-        /*/// <summary>
+        /// <summary>
         /// POST: /Employee/GetRequests?page=3&pageSize=10
         /// Header
         /// {
@@ -426,8 +426,6 @@ namespace TimeOffTracker.Controllers
         /// {
         ///     "RequestTypes": "1",
         ///     "StateDetails": "1",
-        ///     "DateTime": "",
-        ///     "DateTime": ""
         /// }
         /// </param>
         /// <param name="page">Текущая страница</param>
@@ -451,18 +449,24 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            filter.UserId = userId;
 
-            /*
-             Статистика заявок
-                1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.  
-            //	Если фильтр filter == null то вернуть всех
-            //	иначе вернуть похожие по указаному фильтру
-            //	выводить старницами, по 10 елементов на страницу
-            #1#
-            return Ok();
-        }*/
+            var requestRepository = new RequestRepository();
+            var requests = await requestRepository.SelectAllAsync(filter, token);
 
-        /*
+            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
+            var result = new
+            {
+                page = page,
+                pageSize = pageSize,
+                totalPages = totalPages,
+                requests = requestsDto,
+            };
+            return Ok(result);
+        }
+
+
         /// <summary>
         /// GET: /Employee/GetDays
         /// Header
@@ -475,16 +479,25 @@ namespace TimeOffTracker.Controllers
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpGet]
-        public async Task<ActionResult<int>> GetDays(CancellationToken token)
+        public async Task<ActionResult<Dictionary<int, TimeSpan>>> GetDays(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
 
-            /*
-                Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.
-             #1#
-            return Ok();
-        }*/
+            var requestRepository = new RequestRepository();
+
+            var enumRepository = new EnumRepository();
+            var requestTypes = enumRepository.GetAll<RequestTypes>();
+
+            var days = new Dictionary<int, TimeSpan>();
+            foreach (var rt in requestTypes)
+            {
+                var timeSpan = await requestRepository.GetDays(userId, rt.Id, token);
+                days.Add(rt.Id, timeSpan);
+            }
+
+            return Ok(days);
+        }
     }
 }
