@@ -47,7 +47,7 @@ namespace TimeOffTracker.CRUD
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.InsertAsync(requestDto, token);
 
-            await AddUserSignature(requestDto.UserSignatureDto, requestId, 0, token);
+            await AddUserSignatureAsync(requestDto.UserSignatureDto, requestId, 0, token);
 
             return requestId;
         }
@@ -79,12 +79,12 @@ namespace TimeOffTracker.CRUD
             //Удаляем старых подписчиков
             await userSignatureRepository.DeleteAllAsync(requestId, token);
 
-            await AddUserSignature(requestDto.UserSignatureDto, requestId, 0, token);
+            await AddUserSignatureAsync(requestDto.UserSignatureDto, requestId, 0, token);
 
             return requestDto.Id;
         }
 
-        public async Task AddUserSignature(List<UserSignatureDto> userSignatureDto, int requestId, int nInQueue,
+        public async Task AddUserSignatureAsync(List<UserSignatureDto> userSignatureDto, int requestId, int nInQueue,
             CancellationToken token)
         {
             //Убираем менеджеров которые повторяются
@@ -114,10 +114,10 @@ namespace TimeOffTracker.CRUD
             }
         }
 
-        public async Task DeleteOwner(int requestId, CancellationToken token)
+        public async Task DeleteOwnerAsync(int requestId, CancellationToken token)
         {
-            var userSignatureRepository = new UserSignatureRepository();
-            await userSignatureRepository.DeleteAllAsync(requestId, token);
+            //var userSignatureRepository = new UserSignatureRepository();
+            //await userSignatureRepository.DeleteAllAsync(requestId, token);
 
             var requestRepository = new RequestRepository();
             await requestRepository.DeleteOwnerAsync(requestId, token);
@@ -143,7 +143,7 @@ namespace TimeOffTracker.CRUD
             return true;
         }
 
-        public async Task<string> ChekAsync(RequestDto requestDto, CancellationToken token)
+        public async Task<string> ChekRequestAsync(RequestDto requestDto, CancellationToken token)
         {
             //Проверка даты
             var time1 = requestDto.DateTimeFrom.Ticks - DateTime.Now.Ticks;
@@ -221,18 +221,6 @@ namespace TimeOffTracker.CRUD
             }
 
             return "Ok";
-        }
-
-        void FindAsync()
-        {
-        }
-
-        void Read()
-        {
-        }
-
-        void List()
-        {
         }
     }
 }

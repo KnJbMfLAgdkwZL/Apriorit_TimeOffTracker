@@ -78,7 +78,7 @@ namespace TimeOffTracker.Controllers
             requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var chek = await requestCrud.ChekAsync(requestDto, token);
+            var chek = await requestCrud.ChekRequestAsync(requestDto, token);
             if (chek != "Ok")
             {
                 return BadRequest(chek);
@@ -148,7 +148,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekAsync(requestDto, token);
+            var result = await requestCrud.ChekRequestAsync(requestDto, token);
             if (result != "Ok")
             {
                 return BadRequest(result);
@@ -158,7 +158,7 @@ namespace TimeOffTracker.Controllers
 
             // SendMaill
 
-            return Ok();
+            return Ok(requestDto.Id);
         }
 
         /// <summary>
@@ -209,30 +209,54 @@ namespace TimeOffTracker.Controllers
             var userSignatureRepository = new UserSignatureRepository();
 
             await userSignatureRepository.DeleteAllNotApprovedAsync(requestDto.Id, token);
-            await requestCrud.AddUserSignature(requestDto.UserSignatureDto, requestDto.Id, 0, token);
+            await requestCrud.AddUserSignatureAsync(requestDto.UserSignatureDto, requestDto.Id, 0, token);
 
             // SendMaill
 
             return Ok(requestDto.Id);
         }
 
-        /*
-                
-            Изменение полностью утвержденной заявки (состояние  “Утверждена”)
-                4. После финального утверждения сотрудник может  изменить даты заявки. 
-                В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
-                
-                3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                6. Появляется сообщение: “Do you really want to edit the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка открывается для редактирования. 
-                8. Пользователь может поменять:
-                    a. Даты
-                    b. Причину
-                    c. Людей подтверждающих заявку 
-                9. После того, как пользователь нажал Сохранить:
-                    a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
-                    b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
-            */
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditApprovedRequest([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.Approved)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var result = await requestCrud.ChekRequestAsync(requestDto, token);
+            if (result != "Ok")
+            {
+                return BadRequest(result);
+            }
+
+            requestDto.StateDetailId = StateDetails.ModifiedByOwner;
+            await requestCrud.UpdateAsync(requestDto, token);
+
+            requestDto.StateDetailId = StateDetails.New;
+            var requestId = await requestCrud.CreateAsync(requestDto, token);
+
+            // SendMaill
+
+            return Ok(requestId);
+        }
 
         /// <summary>
         /// DELETE: /Employee/DeleteNewRequest?id=12
@@ -269,28 +293,44 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            await requestCrud.DeleteOwner(id, token);
+            await requestCrud.DeleteOwnerAsync(id, token);
             return Ok();
         }
 
-        /*
-            Изменение заявки на отпуск
-                3. После финального утверждения сотрудник может отменить заявку на отпуск. 
-                В этом случае отмену заявки подтверждает только бухгалтерия.
-                
-            Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
-                3. Пользователь выбирает заявку в состоянии 
-                    “Утверждена” (Approved) или 
-                    “В процессе” (In progress), 
-                    у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Отменить (Decline).
-                6. Появляется сообщение: “Do you really want to decline the approved request?” 
-                (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
-                В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
-                8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
-            */
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpDelete]
+        public async Task<ActionResult<string>> DeleteInProgressApprovedRequest([FromQuery(Name = "id")] int id,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.InProgress &&
+                request.StateDetailId != (int) StateDetails.Approved)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            await requestCrud.DeleteOwnerAsync(id, token);
+
+            //SendEmaill
+            //8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту,
+            //как  и в случае отмены заявки в середины цепочки.
+
+            return Ok();
+        }
 
         /// <summary>
         /// GET: /Employee/GetManagers
@@ -373,31 +413,6 @@ namespace TimeOffTracker.Controllers
                     : new List<UserSignatureDto>()
             });
         }
-
-        /*/// <summary>
-        /// PUT: /Employee/EditRequestUserSignature
-        /// Header
-        /// {
-        ///     Authorization: Bearer {TOKEN}
-        /// }
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="users"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        [ProducesResponseType(200, Type = typeof(int))]
-        [ProducesResponseType(404)]
-        [HttpPut]
-        public async Task<ActionResult<int>> EditRequestUserSignature([FromQuery(Name = "id")] int id,
-            [FromBody] List<UserSignatureDto> users,
-            CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            var userId = int.Parse(userIdStr);
-
-            return Ok();
-        }*/
 
         /*/// <summary>
         /// POST: /Employee/GetRequests?page=3&pageSize=10
