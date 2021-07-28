@@ -38,21 +38,19 @@ export class Authorization extends Component {
             password: this.state.textFieldPasswordValue
         }).then(async response => {
             if (response.status === 200) {
-                if (response.status === 200) {
-                    const token = await response.json().then(token => token);
-                    localStorage.setItem("token", token);
-                    this.setState({
-                        isLoading: false,
-                    })
-                    window.location.reload();
-                } else {
-                    this.setState({
-                        errorState: true
-                    });
-                    this.setState({
-                        isLoading: false,
-                    })
-                }
+                const token = await response.json().then(token => token);
+                localStorage.setItem("token", token);
+                this.setState({
+                    isLoading: false,
+                })
+                window.location.reload();
+            } else {
+                this.setState({
+                    errorState: true
+                });
+                this.setState({
+                    isLoading: false,
+                })
             }
         });
     }

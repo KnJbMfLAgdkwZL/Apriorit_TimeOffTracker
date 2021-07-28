@@ -162,7 +162,7 @@ export class CreateUser extends Component {
                                     <Button
                                         outline
                                         block
-                                        color="info">
+                                        color="secondary">
                                         To Users Page
                                     </Button>
                                 </Link>

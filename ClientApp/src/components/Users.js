@@ -6,6 +6,7 @@ import DataGrid from "react-data-grid"
 import {RequestSendingService} from "../Services/RequestSendingService";
 import {Link} from "react-router-dom";
 import {UserRoleEnum} from "../Enums/UserRoleEnum";
+import {EditRole} from "./additionalComponents/EditRole";
 
 const URL = "http://localhost:5000/";
 
@@ -24,6 +25,7 @@ const roleOptions = [
     {value: 'Employee', label: 'Employee'}
 ];
 
+
 export class Users extends Component {
     static displayName = Users.name;
 
@@ -38,14 +40,17 @@ export class Users extends Component {
                 {value: null, label: 'Any'},
             ],
             rows: [
-                {name: "loading...", email: 'loading...', login: "loading...", role: "loading...", visible: true},
+                {id: "", name: "loading...", email: 'loading...', login: "loading...", role: "loading...", visible: true},
             ],
             selectedNameOption: null,
             selectedRoleOption: null,
-            selectedEmailOption: null
+            selectedEmailOption: null,
+            edit: false
         };
 
         this._filterBySelects = this._filterBySelects.bind(this);
+        this._openEditUserPart = this._openEditUserPart.bind(this);
+        this._closeEditUserPart = this._closeEditUserPart.bind(this);
     }
 
     render() {
@@ -124,7 +129,7 @@ export class Users extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                Stage Of Creation
+                                Create Stage
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -142,9 +147,28 @@ export class Users extends Component {
                                 </Link>
                             </center>
                         </Col>
+                        <Col>
+                            <center>
+                                <Button
+                                    onClick={this._openEditUserPart}
+                                    outline
+                                    block
+                                    color="success">
+                                    Edit User By Chosen Email
+                                </Button>
+                            </center>
+                        </Col>
                         <Col/>
                     </Row>
                 </Container>
+                {this.state.edit &&
+                    <EditRole
+                        closeHandler={this._closeEditUserPart}
+                        user={this.state.rows.find((element, index, arr) => {
+                            return element.visible;
+                        })}
+                    />
+                }
             </div>
         );
     }
@@ -176,6 +200,7 @@ export class Users extends Component {
                         this.state.rows.pop();
                         data.users.forEach(user => {
                             this.state.rows.push({
+                                id: user.id,
                                 name: String(user.firstName + " " + user.secondName),
                                 role: UserRoleEnum[user.roleId],
                                 email: user.email,
@@ -208,27 +233,36 @@ export class Users extends Component {
 
             if ((this.state.selectedNameOption.value !== null) && row.name !== this.state.selectedNameOption.value) {
                 result = result && false;
-            }
-            else {
+            } else {
                 result = result && true;
             }
 
             if ((this.state.selectedEmailOption.value !== null) && row.email !== this.state.selectedEmailOption.value) {
                 result = result && false;
-            }            
-            else {
+            } else {
                 result = result && true;
             }
 
             if ((this.state.selectedRoleOption.value !== null) && row.role !== this.state.selectedRoleOption.value) {
                 result = result && false;
-            }            
-            else {
+            } else {
                 result = result && true;
             }
 
             row.visible = result;
         })
         this.setState({})
+    }
+
+    _openEditUserPart() {
+        this.setState({
+            edit: true
+        })
+    }
+
+    _closeEditUserPart() {
+        this.setState({
+            edit: false
+        })
     }
 }
