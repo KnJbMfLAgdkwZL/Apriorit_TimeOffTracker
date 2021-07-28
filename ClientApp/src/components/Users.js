@@ -5,6 +5,7 @@ import Select from 'react-select';
 import DataGrid from "react-data-grid"
 import {RequestSendingService} from "../Services/RequestSendingService";
 import {Link} from "react-router-dom";
+import {UserRoleEnum} from "../Enums/UserRoleEnum";
 
 const URL = "http://localhost:5000/";
 
@@ -37,64 +38,14 @@ export class Users extends Component {
                 {value: null, label: 'Any'},
             ],
             rows: [
-                {name: 0, email: 'Example', login: "@123", role: "admin?"},
+                {name: "loading...", email: 'loading...', login: "loading...", role: "loading...", visible: true},
             ],
             selectedNameOption: null,
             selectedRoleOption: null,
             selectedEmailOption: null
         };
-    }
 
-    _handleNameChange = selectedNameOption => {
-        this.setState({selectedNameOption});
-    };
-
-    _handleRoleChange = selectedRoleOption => {
-        this.setState({selectedRoleOption});
-    };
-
-    _handleEmailChange = selectedEmailOption => {
-        this.setState({selectedEmailOption});
-    };
-    
-    async componentDidMount(): Promise<void> {
-        this.setState({
-            selectedNameOption: this.state.nameOptions[0],
-            selectedEmailOption: this.state.emailOptions[0],
-            selectedRoleOption: roleOptions[0]
-        });
-
-        await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/GetUsers?page=1&pageSize=10000", {})
-            .then(async response => {
-                if (response.status === 200) {
-                    try {
-                        const data = await response.json().then(data => data);
-                        this.state.rows.pop();
-                        data.users.forEach(user => {
-                            this.state.rows.push({
-                                name: String(user.firstName + " " + user.secondName),
-                                role: user.roleId,
-                                email: user.email,
-                                login: user.login
-                            });
-                            this.state.nameOptions.push({
-                                value: String(user.firstName + " " + user.secondName),
-                                label: String(user.firstName + " " + user.secondName)
-                            });
-                            this.state.emailOptions.push({
-                                value: user.email,
-                                label: user.email
-                            });
-                        });
-                        this.setState({});
-                    } catch (error) {
-                        console.error(error);
-                    }
-                }
-            })
-            .catch(error => {
-                console.error(error);
-            })
+        this._filterBySelects = this._filterBySelects.bind(this);
     }
 
     render() {
@@ -144,6 +95,7 @@ export class Users extends Component {
                         </Col>
                         <Col>
                             <Button
+                                onClick={this._filterBySelects}
                                 outline
                                 block
                                 color="info">
@@ -166,7 +118,7 @@ export class Users extends Component {
                 </Container>
                 <DataGrid
                     columns={columns}
-                    rows={this.state.rows}
+                    rows={this.state.rows.filter(row => row.visible)}
                 />
                 <Container className="mt-3">
                     <Row>
@@ -180,7 +132,7 @@ export class Users extends Component {
                         <Col/>
                         <Col>
                             <center>
-                                <Link to="/createUser" style={{ textDecoration: 'none' }}>
+                                <Link to="/createUser" style={{textDecoration: 'none'}}>
                                     <Button
                                         outline
                                         block
@@ -195,5 +147,88 @@ export class Users extends Component {
                 </Container>
             </div>
         );
+    }
+
+    _handleNameChange = selectedNameOption => {
+        this.setState({selectedNameOption});
+    };
+
+    _handleRoleChange = selectedRoleOption => {
+        this.setState({selectedRoleOption});
+    };
+
+    _handleEmailChange = selectedEmailOption => {
+        this.setState({selectedEmailOption});
+    };
+
+    async componentDidMount(): Promise<void> {
+        this.setState({
+            selectedNameOption: this.state.nameOptions[0],
+            selectedEmailOption: this.state.emailOptions[0],
+            selectedRoleOption: roleOptions[0]
+        });
+
+        await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/GetUsers?page=1&pageSize=10000", {})
+            .then(async response => {
+                if (response.status === 200) {
+                    try {
+                        const data = await response.json().then(data => data);
+                        this.state.rows.pop();
+                        data.users.forEach(user => {
+                            this.state.rows.push({
+                                name: String(user.firstName + " " + user.secondName),
+                                role: UserRoleEnum[user.roleId],
+                                email: user.email,
+                                login: user.login,
+                                visible: true
+                            });
+                            this.state.nameOptions.push({
+                                value: String(user.firstName + " " + user.secondName),
+                                label: String(user.firstName + " " + user.secondName)
+                            });
+                            this.state.emailOptions.push({
+                                value: user.email,
+                                label: user.email
+                            });
+                        });
+                        this.setState({});
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            })
+    }
+
+    _filterBySelects() {
+        this.state.rows.forEach(row => {
+            let result = true;
+
+            if ((this.state.selectedNameOption.value !== null) && row.name !== this.state.selectedNameOption.value) {
+                result = result && false;
+            }
+            else {
+                result = result && true;
+            }
+
+            if ((this.state.selectedEmailOption.value !== null) && row.email !== this.state.selectedEmailOption.value) {
+                result = result && false;
+            }            
+            else {
+                result = result && true;
+            }
+
+            if ((this.state.selectedRoleOption.value !== null) && row.role !== this.state.selectedRoleOption.value) {
+                result = result && false;
+            }            
+            else {
+                result = result && true;
+            }
+
+            row.visible = result;
+        })
+        this.setState({})
     }
 }
