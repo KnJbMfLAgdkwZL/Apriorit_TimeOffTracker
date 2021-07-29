@@ -24,7 +24,7 @@ namespace TimeOffTracker.Model.Repositories
             return new EnumDto()
             {
                 Id = id,
-                Type = System.Enum.Parse(typeof(UserRoles), id.ToString(), ignoreCase: true).ToString()
+                Type = System.Enum.Parse(typeof(T), id.ToString(), ignoreCase: true).ToString()
             };
         }
 

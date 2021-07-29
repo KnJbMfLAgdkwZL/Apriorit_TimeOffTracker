@@ -164,40 +164,6 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
-        /// GET: /Admin/GetUserRoles
-        /// Header
-        /// {
-        ///     Authorization: Bearer {TOKEN}
-        /// }
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns>
-        /// [
-        ///     {
-        ///         "id": 1,
-        ///         "type": "Admin",
-        ///         "comments": "Администратор",
-        ///         "deleted": false
-        ///     },
-        ///     {
-        ///         "id": 2,
-        ///         "type": "Accounting",
-        ///         "comments": "Бухгалтерия",
-        ///         "deleted": false
-        ///     },
-        /// ]
-        /// </returns>
-        [ProducesResponseType(200, Type = typeof(List<EnumDto>))]
-        [ProducesResponseType(404)]
-        [HttpGet]
-        public async Task<ActionResult<List<EnumDto>>> GetUserRoles(CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var enumRepository = new EnumRepository();
-            return Ok(enumRepository.GetAll<UserRoles>());
-        }
-
-        /// <summary>
         /// PATCH: /Admin/ModifyUserRole
         /// Header
         /// {
