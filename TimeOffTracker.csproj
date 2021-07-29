@@ -37,6 +37,7 @@
     <ItemGroup>
       <Folder Include="Middlewares" />
       <Folder Include="Migrations" />
+      <Folder Include="_tmp" />
     </ItemGroup>
 
     <ItemGroup>
