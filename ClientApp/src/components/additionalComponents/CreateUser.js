@@ -4,8 +4,7 @@ import {Button, Col, Container, Row} from "reactstrap";
 import Select from "react-select";
 import TextField from "@material-ui/core/TextField";
 import {Link} from "react-router-dom";
-
-const URL = "http://localhost:5000/";
+import {URL} from "../../GlobalSettings/URL";
 
 const roleOptions = [
     {value: '4', label: 'Manager'},
@@ -179,7 +178,7 @@ export class CreateUser extends Component {
         this.setState({
             loading: true,
         })
-        await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/CreateUser", {
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/CreateUser", {
             "email": this.state.textFieldEmailValue,
             "login": this.state.textFieldLoginValue,
             "firstName": this.state.textFieldFirstNameValue,

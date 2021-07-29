@@ -1,10 +1,8 @@
 ﻿import React, {Component} from 'react';
 import {Container, Row, Col, Button} from 'reactstrap';
 import Select from "react-select";
-import {UserRoleEnum} from "../../Enums/UserRoleEnum";
 import {RequestSendingService} from "../../Services/RequestSendingService";
-
-const URL = "http://localhost:5000/";
+import {URL} from "../../GlobalSettings/URL";
 
 const roleOptions = [
     {value: 3, label: 'Employee'},
@@ -95,7 +93,7 @@ export class EditRole extends Component {
         this.setState({
             loading: true
         })
-        await RequestSendingService.sendPostRequestAuthorized(URL + "/Admin/ModifyUserRole", {
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "/Admin/ModifyUserRole", {
             id: parseInt(this.props.user.id),
             roleId: this.state.selectedRoleOption.value
         })

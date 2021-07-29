@@ -5,8 +5,7 @@ import Container from '@material-ui/core/Container';
 import {AuthService} from "../Services/AuthService";
 import {Button} from "reactstrap";
 import {RequestSendingService} from "../Services/RequestSendingService";
-
-const URL = "http://localhost:5000/"
+import {URL} from "../GlobalSettings/URL";
 
 export class Authorization extends Component {
 
@@ -32,8 +31,10 @@ export class Authorization extends Component {
         this.setState({
             isLoading: true,
         })
+        
+        console.log(URL + 'api/auth');
 
-        await RequestSendingService.sendPostRequestUnauthorized(URL + 'api/auth', {
+        await RequestSendingService.sendPostRequestUnauthorized(URL.url + 'api/auth', {
             login: this.state.textFieldLoginValue,
             password: this.state.textFieldPasswordValue
         }).then(async response => {
