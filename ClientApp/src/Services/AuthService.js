@@ -14,14 +14,12 @@ export class AuthService {
         }
     }
     
-    static isCurrentUserRoleInList(...roleTypes) {
+    static isCurrentUserRoleEquals(role) {
         try {
-            let result = true;
             const decodedJwtToken = jwt_decode(localStorage.getItem("token"));
-            for (const roleType in roleTypes) {
-                if (roleType !== decodedJwtToken.role) result = false;
-            }
-            return result;
+            console.log(role);
+            console.log(decodedJwtToken.role);
+            if (String(role) === String(decodedJwtToken.role)) return true;
         }
         catch (error) {
             console.error(error);
