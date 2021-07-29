@@ -16,12 +16,11 @@ namespace TimeOffTracker.Model.Repositories
             await using var context = new masterContext();
             return await context.Requests.Where(r =>
                 r.UserId == filter.UserId &&
-                r.RequestTypeId == (int) filter.RequestTypeId &&
-                r.StateDetailId == (int) filter.StateDetailId &&
+                (filter.RequestTypeId == 0 || r.RequestTypeId == (int) filter.RequestTypeId) &&
+                (filter.StateDetailId == 0 || r.StateDetailId == (int) filter.StateDetailId) &&
                 EF.Functions.Like(r.Reason, $"%{filter.Reason}%")
             ).ToListAsync(token);
         }
-
 
         public async Task<int> InsertAsync(RequestDto requestDto, CancellationToken token)
         {
@@ -48,8 +47,20 @@ namespace TimeOffTracker.Model.Repositories
                 .Where(r =>
                     r.Id == id &&
                     r.UserId == userId &&
-                    r.StateDetailId != (int) StateDetails.Deleted &&
-                    r.StateDetailId != (int) StateDetails.DeclinedByOwner
+                    r.StateDetailId != (int) StateDetails.Deleted
+                )
+                .Include(r => r.UserSignatures
+                    .Where(us => us.Deleted == false))
+                .FirstOrDefaultAsync(token);
+        }
+
+        public async Task<Request> SelectAsync(int id, int userId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests
+                .Where(r =>
+                    r.Id == id &&
+                    r.UserId == userId
                 )
                 .Include(r => r.UserSignatures
                     .Where(us => us.Deleted == false))

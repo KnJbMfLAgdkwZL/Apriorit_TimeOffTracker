@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Query;
 using PagedList;
 using TimeOffTracker.Model.Enum;
 
@@ -30,24 +29,24 @@ namespace TimeOffTracker.Controllers
     public class EmployeeController : ControllerBase
     {
         /// <summary>
+        /// Создает новую заявку на отпуск
         /// POST: /Employee/СreateRequest
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
         /// }
+        /// 
+        /// Перед использованием, проверять коллизию дат на другие заявки /Employee/CheckDateCollision
         /// </summary>
         /// <param name="requestDto">
         ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
         /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
-        /// 
         /// Body
         /// {
         ///     "dateTimeFrom": "2021-07-25",
         ///     "dateTimeTo": "2021-07-26",
-        /// 
         ///     "requestTypeId": 1,     
         ///     "reason": "string",
-        /// 
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
         ///  *  "userSignatureDto": [
@@ -96,12 +95,34 @@ namespace TimeOffTracker.Controllers
             return requestId;
         }
 
+        /// <summary>
+        /// Проверка дат на коллизию с другими заявками
+        /// POST: /Employee/CheckDateCollision
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary> 
+        /// </summary>
+        /// <param name="requestDto">
+        /// {
+        ///     "dateTimeFrom": "2021-08-02",
+        ///     "dateTimeTo": "2021-08-08"
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpPost]
         public async Task<ActionResult<string>> CheckDateCollision([FromBody] RequestDto requestDto,
             CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
+
             var requestRepository = new RequestRepository();
             var request = await requestRepository.CheckDateCollision(requestDto, token);
             if (request != null)
@@ -119,7 +140,25 @@ namespace TimeOffTracker.Controllers
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="requestDto"></param>
+        /// <param name="requestDto">
+        ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
+        /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
+        /// {
+        ///     "id": "25",
+        ///     "dateTimeFrom": "2021-08-01",
+        ///     "dateTimeTo": "2021-08-02",
+        ///     "requestTypeId": 1,
+        ///     "reason": "string",
+        ///  *  "projectRoleComment": "Варил кофе",
+        ///  *  "projectRoleTypeId": 1, 
+        ///  *  "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(int))]
@@ -132,10 +171,11 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
 
             var requestRepository = new RequestRepository();
             var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
-            if (request is not {UserSignatures: {Count: > 0}})
+            if (request == null)
             {
                 return NoContent();
             }
@@ -146,6 +186,8 @@ namespace TimeOffTracker.Controllers
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
             }
+
+            requestDto.StateDetailId = StateDetails.New;
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
             var result = await requestCrud.ChekRequestAsync(requestDto, token);
@@ -162,13 +204,33 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
+        /// Изменить сотрудников заявки в состояние “В процессе”
         /// PUT: /Employee/EditInProgressRequest
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="requestDto"></param>
+        /// <param name="requestDto">
+        /// Body
+        /// {
+        ///     "id": "25",
+        ///     "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         },
+        ///         {
+        ///             "nInQueue": 1,
+        ///             "userId": 9
+        ///         },
+        ///         {
+        ///             "nInQueue": 2,
+        ///             "userId": 13
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(int))]
@@ -184,6 +246,7 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
 
             var requestRepository = new RequestRepository();
             var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
@@ -216,6 +279,39 @@ namespace TimeOffTracker.Controllers
             return Ok(requestDto.Id);
         }
 
+        /// <summary>
+        /// Редактирование одобренной заявки
+        /// PUT: /Employee/EditApprovedRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// 
+        /// </summary>
+        /// <param name="requestDto">
+        ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
+        /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
+        /// Body
+        /// {
+        ///     "id": "25", 
+        ///     "dateTimeFrom": "2021-07-25",
+        ///     "dateTimeTo": "2021-07-26",
+        ///     "requestTypeId": 1,     
+        ///     "reason": "string",
+        ///  *  "projectRoleComment": "Варил кофе",
+        ///  *  "projectRoleTypeId": 1, 
+        ///  *  "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// request.Id
+        /// </returns>
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpPut]
@@ -225,6 +321,7 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
 
             var requestRepository = new RequestRepository();
             var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
@@ -250,6 +347,7 @@ namespace TimeOffTracker.Controllers
             requestDto.StateDetailId = StateDetails.ModifiedByOwner;
             await requestCrud.UpdateAsync(requestDto, token);
 
+            requestDto.Id = 0;
             requestDto.StateDetailId = StateDetails.New;
             var requestId = await requestCrud.CreateAsync(requestDto, token);
 
@@ -259,13 +357,14 @@ namespace TimeOffTracker.Controllers
         }
 
         /// <summary>
+        /// Удалить заявку со статусом New
         /// DELETE: /Employee/DeleteNewRequest?id=12
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Ид заявки</param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
@@ -294,13 +393,24 @@ namespace TimeOffTracker.Controllers
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
             await requestCrud.DeleteOwnerAsync(id, token);
-            return Ok();
+            return Ok("Ok");
         }
 
+        /// <summary>
+        /// Удалить заявку со статусом InProgress или Approved
+        /// DELETE: /Employee/DeleteInProgressOrApprovedRequest?id=12
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id">Ид заявки</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpDelete]
-        public async Task<ActionResult<string>> DeleteInProgressApprovedRequest([FromQuery(Name = "id")] int id,
+        public async Task<ActionResult<string>> DeleteInProgressOrApprovedRequest([FromQuery(Name = "id")] int id,
             CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
@@ -308,7 +418,7 @@ namespace TimeOffTracker.Controllers
             var userId = int.Parse(userIdStr);
 
             var requestRepository = new RequestRepository();
-            var request = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
+            var request = await requestRepository.SelectAsync(id, userId, token);
             if (request == null)
             {
                 return NoContent();
@@ -329,10 +439,11 @@ namespace TimeOffTracker.Controllers
             //8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту,
             //как  и в случае отмены заявки в середины цепочки.
 
-            return Ok();
+            return Ok("Ok");
         }
 
         /// <summary>
+        /// Получить список менеджеров
         /// GET: /Employee/GetManagers
         /// Header
         /// {
@@ -362,6 +473,7 @@ namespace TimeOffTracker.Controllers
         }
 
         ///  <summary>
+        /// Получить детали детальную информацию о заявке
         ///  GET: /Employee/GetRequestDetails?id=10
         ///  Header
         ///  {
@@ -422,10 +534,12 @@ namespace TimeOffTracker.Controllers
         /// }
         /// </summary>
         /// <param name="filter">
+        /// Получить все заявки
         /// Body
         /// {
-        ///     "RequestTypes": "1",
-        ///     "StateDetails": "1",
+        ///     "RequestTypeId": 0,
+        ///     "StateDetailId": 0,
+        ///     "Reason": ""
         /// }
         /// </param>
         /// <param name="page">Текущая страница</param>
@@ -452,6 +566,7 @@ namespace TimeOffTracker.Controllers
             filter.UserId = userId;
 
             var requestRepository = new RequestRepository();
+
             var requests = await requestRepository.SelectAllAsync(filter, token);
 
             var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
@@ -466,8 +581,9 @@ namespace TimeOffTracker.Controllers
             return Ok(result);
         }
 
-
         /// <summary>
+        /// Вернет кличество дней, каждого типа отпуска, со статусом Approved.
+        /// С начала года, которые получил пользователь 
         /// GET: /Employee/GetDays
         /// Header
         /// {
@@ -475,7 +591,17 @@ namespace TimeOffTracker.Controllers
         /// }
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
+        /// <returns>
+        /// {
+        ///     "1": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "2": {"days": 9, "hours": 0, "minutes": 0},
+        ///     "3": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "4": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "5": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "6": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "7": {"days": 3, "hours": 0, "minutes": 0}
+        /// }
+        /// </returns>
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpGet]
@@ -489,7 +615,6 @@ namespace TimeOffTracker.Controllers
 
             var enumRepository = new EnumRepository();
             var requestTypes = enumRepository.GetAll<RequestTypes>();
-
             var days = new Dictionary<int, TimeSpan>();
             foreach (var rt in requestTypes)
             {

@@ -71,16 +71,16 @@ namespace TimeOffTracker.CRUD
                 NInQueue = -1,
                 UserId = accounting.Id
             });
-
+            
             //Обновляем заявку
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.UpdateAsync(requestDto, token);
-
+            
             //Удаляем старых подписчиков
             await userSignatureRepository.DeleteAllAsync(requestId, token);
-
+            
             await AddUserSignatureAsync(requestDto.UserSignatureDto, requestId, 0, token);
-
+            
             return requestDto.Id;
         }
 
