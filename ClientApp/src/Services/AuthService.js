@@ -17,13 +17,24 @@ export class AuthService {
     static isCurrentUserRoleEquals(role) {
         try {
             const decodedJwtToken = jwt_decode(localStorage.getItem("token"));
-            console.log(role);
-            console.log(decodedJwtToken.role);
             if (String(role) === String(decodedJwtToken.role)) return true;
         }
         catch (error) {
             console.error(error);
             return false;
+        }
+    }
+    
+    static getCurrentUserRole() {
+        if (localStorage.getItem("token") === null) return undefined;
+
+        try {
+            const decodedJwtToken = jwt_decode(localStorage.getItem("token"));
+            return String(decodedJwtToken.role);
+        }
+        catch (error) {
+            console.error(error);
+            return undefined;
         }
     }
 }

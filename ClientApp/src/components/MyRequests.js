@@ -12,8 +12,8 @@ const options = [
 ];
 
 
-export class MyRequestsEmployee extends Component {
-    static displayName = MyRequestsEmployee.name;
+export class MyRequests extends Component {
+    static displayName = MyRequests.name;
 
     constructor(props) {
         super(props);
