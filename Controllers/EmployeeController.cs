@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Query;
 using PagedList;
 using TimeOffTracker.Model.Enum;
 
@@ -30,24 +29,24 @@ namespace TimeOffTracker.Controllers
     public class EmployeeController : ControllerBase
     {
         /// <summary>
+        /// Создает новую заявку на отпуск
         /// POST: /Employee/СreateRequest
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
         /// }
+        /// 
+        /// Перед использованием, проверять коллизию дат на другие заявки /Employee/CheckDateCollision
         /// </summary>
         /// <param name="requestDto">
         ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
         /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
-        /// 
         /// Body
         /// {
         ///     "dateTimeFrom": "2021-07-25",
         ///     "dateTimeTo": "2021-07-26",
-        /// 
         ///     "requestTypeId": 1,     
         ///     "reason": "string",
-        /// 
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
         ///  *  "userSignatureDto": [
@@ -78,7 +77,7 @@ namespace TimeOffTracker.Controllers
             requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekAsync(requestDto, token);
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
             if (result != "Ok")
             {
                 return BadRequest(result);
@@ -91,7 +90,47 @@ namespace TimeOffTracker.Controllers
                 бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
             */
 
+            // SendMaill
+
             return requestId;
+        }
+
+        /// <summary>
+        /// Проверка дат на коллизию с другими заявками
+        /// POST: /Employee/CheckDateCollision
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary> 
+        /// </summary>
+        /// <param name="requestDto">
+        /// {
+        ///     "dateTimeFrom": "2021-08-02",
+        ///     "dateTimeTo": "2021-08-08"
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPost]
+        public async Task<ActionResult<string>> CheckDateCollision([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.CheckDateCollision(requestDto, token);
+            if (request != null)
+            {
+                return BadRequest("There is another request for these dates.");
+            }
+
+            return Ok("Ok");
         }
 
         /// <summary>
@@ -101,7 +140,25 @@ namespace TimeOffTracker.Controllers
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="requestDto"></param>
+        /// <param name="requestDto">
+        ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
+        /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
+        /// {
+        ///     "id": "25",
+        ///     "dateTimeFrom": "2021-08-01",
+        ///     "dateTimeTo": "2021-08-02",
+        ///     "requestTypeId": 1,
+        ///     "reason": "string",
+        ///  *  "projectRoleComment": "Варил кофе",
+        ///  *  "projectRoleTypeId": 1, 
+        ///  *  "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(int))]
@@ -114,10 +171,11 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
 
             var requestRepository = new RequestRepository();
             var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
-            if (request is not {UserSignatures: {Count: > 0}})
+            if (request == null)
             {
                 return NoContent();
             }
@@ -129,55 +187,184 @@ namespace TimeOffTracker.Controllers
                 return BadRequest($"Request.State: {state.Type}");
             }
 
+            requestDto.StateDetailId = StateDetails.New;
+
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekAsync(requestDto, token);
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
             if (result != "Ok")
             {
                 return BadRequest(result);
             }
 
             await requestCrud.UpdateAsync(requestDto, token);
-            return Ok();
+
+            // SendMaill
+
+            return Ok(requestDto.Id);
         }
-        
-        /*
-             Изменение заявки на отпуск
-                3. После финального утверждения сотрудник может отменить заявку на отпуск. 
-                В этом случае отмену заявки подтверждает только бухгалтерия.
-                
-            Изменение частично утвержденной заявки (состояние “В процессе”)
-                2. После первого утверждения, но раньше финального утверждения, 
-                сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
-            
-                3. Пользователь выбирает заявку в состоянии “В процессе” (In progress) и нажимает Просмотреть (View). 
-                6. Заявка позволяет изменить людей, еще не подписавших заявку. После изменения возможно одно из двух:
-                    a. Изменен следующий человек в цепочке: Новому менеджеру отправляется письмо.
-                    b. Изменен человек, который не должен еще подписывать заявку (не следующий за последним подписавшим): Не происходит никаких дополнительных действий.
-            
-            Изменение полностью утвержденной заявки (состояние  “Утверждена”)
-                4. После финального утверждения сотрудник может  изменить даты заявки. 
-                В этом случае заявка должна пройти снова утверждение у всех ответственных лиц, как при начальном утверждении.
-                
-                3. Пользователь выбирает заявку в состоянии “Утверждена” (Approved), у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                6. Появляется сообщение: “Do you really want to edit the approved request?” (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка открывается для редактирования. 
-                8. Пользователь может поменять:
-                    a. Даты
-                    b. Причину
-                    c. Людей подтверждающих заявку 
-                9. После того, как пользователь нажал Сохранить:
-                    a. Старая заявка переходит в состояние Отменена (Rejected). В причине отмены заявки:”Modified by the owner” (“Изменена сотрудником”) 
-                    b. В системе появляется новая заявка, которая должна пройти новый цикл утверждения.
-            */
 
         /// <summary>
+        /// Изменить сотрудников заявки в состояние “В процессе”
+        /// PUT: /Employee/EditInProgressRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="requestDto">
+        /// Body
+        /// {
+        ///     "id": "25",
+        ///     "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         },
+        ///         {
+        ///             "nInQueue": 1,
+        ///             "userId": 9
+        ///         },
+        ///         {
+        ///             "nInQueue": 2,
+        ///             "userId": 13
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditInProgressRequest([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            //Изменение частично утвержденной заявки (состояние “В процессе”)
+            //После первого утверждения, но раньше финального утверждения,
+            //сотрудник может изменить человека подписывающего отпуск в списке еще не подписавших.
+
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.InProgress)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var result = await requestCrud.CheckManagersAsync(requestDto.UserSignatureDto, token);
+            if (!result)
+            {
+                return BadRequest("Wrong Manager set");
+            }
+
+            var userSignatureRepository = new UserSignatureRepository();
+
+            await userSignatureRepository.DeleteAllNotApprovedAsync(requestDto.Id, token);
+            await requestCrud.AddUserSignatureAsync(requestDto.UserSignatureDto, requestDto.Id, 0, token);
+
+            // SendMaill
+
+            return Ok(requestDto.Id);
+        }
+
+        /// <summary>
+        /// Редактирование одобренной заявки
+        /// PUT: /Employee/EditApprovedRequest
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// 
+        /// </summary>
+        /// <param name="requestDto">
+        ///  * Меченые поля указываются если requestTypeId == (1, 2, 4)
+        /// Форматы даты со временем: "2021-07-24T10:07:57.237Z"
+        /// Body
+        /// {
+        ///     "id": "25", 
+        ///     "dateTimeFrom": "2021-07-25",
+        ///     "dateTimeTo": "2021-07-26",
+        ///     "requestTypeId": 1,     
+        ///     "reason": "string",
+        ///  *  "projectRoleComment": "Варил кофе",
+        ///  *  "projectRoleTypeId": 1, 
+        ///  *  "userSignatureDto": [
+        ///         {
+        ///             "nInQueue": 0,
+        ///             "userId": 4
+        ///         }
+        ///     ]
+        /// }
+        /// </param>
+        /// <param name="token"></param>
+        /// <returns>
+        /// request.Id
+        /// </returns>
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(404)]
+        [HttpPut]
+        public async Task<ActionResult<int>> EditApprovedRequest([FromBody] RequestDto requestDto,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+            requestDto.UserId = userId;
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectByIdAndUserIdAsync(requestDto.Id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.Approved)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
+            if (result != "Ok")
+            {
+                return BadRequest(result);
+            }
+
+            requestDto.StateDetailId = StateDetails.ModifiedByOwner;
+            await requestCrud.UpdateAsync(requestDto, token);
+
+            requestDto.Id = 0;
+            requestDto.StateDetailId = StateDetails.New;
+            var requestId = await requestCrud.CreateAsync(requestDto, token);
+
+            // SendMaill
+
+            return Ok(requestId);
+        }
+
+        /// <summary>
+        /// Удалить заявку со статусом New
         /// DELETE: /Employee/DeleteNewRequest?id=12
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
         /// }
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Ид заявки</param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
@@ -205,32 +392,58 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            await requestCrud.DeleteOwner(id, token);
-            return Ok();
-            
-
-
-            /*
-             Сценарии использования: Отмена полностью утвержденной заявки или заявки в процессе утверждения
-                3. Пользователь выбирает заявку в состоянии 
-                    “Утверждена” (Approved) или 
-                    “В процессе” (In progress), 
-                    у которой конечная дата (To) позже текущей даты, и нажимает Просмотреть (View). 
-                4. Открывается страница с деталями заявки. 
-                5. Пользователь нажимает Отменить (Decline).
-                6. Появляется сообщение: “Do you really want to decline the approved request?” 
-                (“Вы действительно хотите изменить утвержденную заявку?”)
-                7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
-                В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 
-                8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту, как  и в случае отмены заявки в середины цепочки.
-            */
-            //if request.StateDetailId == 1, New
-            //	request.StateDetailId = 5 Deleted Заявка была Удалена пользователем до первой подписи
-            
+            await requestCrud.DeleteOwnerAsync(id, token);
+            return Ok("Ok");
         }
 
+        /// <summary>
+        /// Удалить заявку со статусом InProgress или Approved
+        /// DELETE: /Employee/DeleteInProgressOrApprovedRequest?id=12
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id">Ид заявки</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpDelete]
+        public async Task<ActionResult<string>> DeleteInProgressOrApprovedRequest([FromQuery(Name = "id")] int id,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectAsync(id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            var enumRepository = new EnumRepository();
+            if (request.StateDetailId != (int) StateDetails.InProgress &&
+                request.StateDetailId != (int) StateDetails.Approved)
+            {
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.State: {state.Type}");
+            }
+
+            var requestCrud = new TimeOffTracker.CRUD.Request();
+            await requestCrud.DeleteOwnerAsync(id, token);
+
+            //SendEmaill
+            //8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту,
+            //как  и в случае отмены заявки в середины цепочки.
+
+            return Ok("Ok");
+        }
 
         /// <summary>
+        /// Получить список менеджеров
         /// GET: /Employee/GetManagers
         /// Header
         /// {
@@ -260,6 +473,7 @@ namespace TimeOffTracker.Controllers
         }
 
         ///  <summary>
+        /// Получить детали детальную информацию о заявке
         ///  GET: /Employee/GetRequestDetails?id=10
         ///  Header
         ///  {
@@ -312,32 +526,7 @@ namespace TimeOffTracker.Controllers
             });
         }
 
-        /*/// <summary>
-        /// PUT: /Employee/EditRequestUserSignature
-        /// Header
-        /// {
-        ///     Authorization: Bearer {TOKEN}
-        /// }
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="users"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        [ProducesResponseType(200, Type = typeof(int))]
-        [ProducesResponseType(404)]
-        [HttpPut]
-        public async Task<ActionResult<int>> EditRequestUserSignature([FromQuery(Name = "id")] int id,
-            [FromBody] List<UserSignatureDto> users,
-            CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            var userId = int.Parse(userIdStr);
-
-            return Ok();
-        }*/
-
-        /*/// <summary>
+        /// <summary>
         /// POST: /Employee/GetRequests?page=3&pageSize=10
         /// Header
         /// {
@@ -345,12 +534,12 @@ namespace TimeOffTracker.Controllers
         /// }
         /// </summary>
         /// <param name="filter">
+        /// Получить все заявки
         /// Body
         /// {
-        ///     "RequestTypes": "1",
-        ///     "StateDetails": "1",
-        ///     "DateTime": "",
-        ///     "DateTime": ""
+        ///     "RequestTypeId": 0,
+        ///     "StateDetailId": 0,
+        ///     "Reason": ""
         /// }
         /// </param>
         /// <param name="page">Текущая страница</param>
@@ -374,20 +563,27 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
+            filter.UserId = userId;
 
-            /*
-             Статистика заявок
-                1. Сотрудник может просмотреть статус любой своей  заявки на отпуск.  
-            //	Если фильтр filter == null то вернуть всех
-            //	иначе вернуть похожие по указаному фильтру
-            //	выводить старницами, по 10 елементов на страницу
-            #1#
-            return Ok();
-        }*/
+            var requestRepository = new RequestRepository();
 
+            var requests = await requestRepository.SelectAllAsync(filter, token);
 
-        /*
+            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
+            var result = new
+            {
+                page = page,
+                pageSize = pageSize,
+                totalPages = totalPages,
+                requests = requestsDto,
+            };
+            return Ok(result);
+        }
+
         /// <summary>
+        /// Вернет кличество дней, каждого типа отпуска, со статусом Approved.
+        /// С начала года, которые получил пользователь 
         /// GET: /Employee/GetDays
         /// Header
         /// {
@@ -395,20 +591,38 @@ namespace TimeOffTracker.Controllers
         /// }
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
+        /// <returns>
+        /// {
+        ///     "1": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "2": {"days": 9, "hours": 0, "minutes": 0},
+        ///     "3": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "4": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "5": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "6": {"days": 3, "hours": 0, "minutes": 0},
+        ///     "7": {"days": 3, "hours": 0, "minutes": 0}
+        /// }
+        /// </returns>
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(404)]
         [HttpGet]
-        public async Task<ActionResult<int>> GetDays(CancellationToken token)
+        public async Task<ActionResult<Dictionary<int, TimeSpan>>> GetDays(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
             var userId = int.Parse(userIdStr);
 
-            /*
-                Сотрудник может просмотреть  количество использованных дней отпуска каждого типа в году.
-             #1#
-            return Ok();
-        }*/
+            var requestRepository = new RequestRepository();
+
+            var enumRepository = new EnumRepository();
+            var requestTypes = enumRepository.GetAll<RequestTypes>();
+            var days = new Dictionary<int, TimeSpan>();
+            foreach (var rt in requestTypes)
+            {
+                var timeSpan = await requestRepository.GetDays(userId, rt.Id, token);
+                days.Add(rt.Id, timeSpan);
+            }
+
+            return Ok(days);
+        }
     }
 }
