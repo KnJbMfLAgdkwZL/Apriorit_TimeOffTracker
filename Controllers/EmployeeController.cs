@@ -77,10 +77,10 @@ namespace TimeOffTracker.Controllers
             requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var chek = await requestCrud.ChekRequestAsync(requestDto, token);
-            if (chek != "Ok")
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
+            if (result != "Ok")
             {
-                return BadRequest(chek);
+                return BadRequest(result);
             }
 
             var requestId = await requestCrud.CreateAsync(requestDto, token);
@@ -190,7 +190,7 @@ namespace TimeOffTracker.Controllers
             requestDto.StateDetailId = StateDetails.New;
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekRequestAsync(requestDto, token);
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
             if (result != "Ok")
             {
                 return BadRequest(result);
@@ -263,8 +263,8 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var checkPass = await requestCrud.CheckManagersAsync(requestDto.UserSignatureDto, token);
-            if (!checkPass)
+            var result = await requestCrud.CheckManagersAsync(requestDto.UserSignatureDto, token);
+            if (!result)
             {
                 return BadRequest("Wrong Manager set");
             }
@@ -338,7 +338,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.ChekRequestAsync(requestDto, token);
+            var result = await requestCrud.CheckRequestAsync(requestDto, token);
             if (result != "Ok")
             {
                 return BadRequest(result);

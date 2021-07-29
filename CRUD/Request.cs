@@ -143,7 +143,7 @@ namespace TimeOffTracker.CRUD
             return true;
         }
 
-        public async Task<string> ChekRequestAsync(RequestDto requestDto, CancellationToken token)
+        public async Task<string> CheckRequestAsync(RequestDto requestDto, CancellationToken token)
         {
             //Проверка даты
             var time1 = requestDto.DateTimeFrom.Ticks - DateTime.Now.Ticks;
