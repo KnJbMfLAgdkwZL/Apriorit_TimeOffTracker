@@ -4,7 +4,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Select from 'react-select';
 
-
 const options = [
     { value: 'chocolate', label: 'Chocolate' },
     { value: 'strawberry', label: 'Strawberry' },
@@ -12,8 +11,8 @@ const options = [
 ];
 
 
-export class MyRequestsEmployee extends Component {
-    static displayName = MyRequestsEmployee.name;
+export class MyRequests extends Component {
+    static displayName = MyRequests.name;
 
     constructor(props) {
         super(props);

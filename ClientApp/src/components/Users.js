@@ -7,8 +7,7 @@ import {RequestSendingService} from "../Services/RequestSendingService";
 import {Link} from "react-router-dom";
 import {UserRoleEnum} from "../Enums/UserRoleEnum";
 import {EditRole} from "./additionalComponents/EditRole";
-
-const URL = "http://localhost:5000/";
+import {URL} from "../GlobalSettings/URL";
 
 const columns = [
     {key: 'name', name: 'name'},
@@ -192,7 +191,7 @@ export class Users extends Component {
             selectedRoleOption: roleOptions[0]
         });
 
-        await RequestSendingService.sendPostRequestAuthorized(URL + "Admin/GetUsers?page=1&pageSize=10000", {})
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/GetUsers?page=1&pageSize=10000", {})
             .then(async response => {
                 if (response.status === 200) {
                     try {
