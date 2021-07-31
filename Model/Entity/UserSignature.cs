@@ -11,6 +11,7 @@ namespace TimeOffTracker.Model
         public int UserId { get; set; }
         public bool Approved { get; set; }
         public bool Deleted { get; set; }
+        public string Reason { get; set; }
 
         public virtual Request Request { get; set; }
         public virtual User User { get; set; }

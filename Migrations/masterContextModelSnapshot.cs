@@ -161,6 +161,12 @@ namespace TimeOffTracker.Migrations
                         .HasColumnType("int")
                         .HasColumnName("N_in_queue");
 
+                    b.Property<string>("Reason")
+                        .HasMaxLength(250)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(250)")
+                        .HasColumnName("reason");
+
                     b.Property<int>("RequestId")
                         .HasColumnType("int")
                         .HasColumnName("request_id");
