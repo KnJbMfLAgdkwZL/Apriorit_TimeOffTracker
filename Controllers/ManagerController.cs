@@ -3,6 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using TimeOffTracker.Model;
 using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
+using System;
+using System.Linq;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using TimeOffTracker.Model;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using TimeOffTracker.Model.DTO;
+using TimeOffTracker.Model.Repositories;
+using System.Collections.Generic;
+using PagedList;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Controllers
 {
@@ -22,58 +35,106 @@ namespace TimeOffTracker.Controllers
     [Authorize(Roles = "Manager, Accounting")]
     public class ManagerController : ControllerBase
     {
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpGet]
-        void RequestApproved(int requestId)
+        public async Task<ActionResult<string>> AcceptRequest([FromQuery(Name = "id")] int id, CancellationToken token)
         {
-            /*
-             Утверждение заявки
-                1. Люди ответственные за утверждение заявки получают соответствующую нотификацию на почту, когда приходит их очередь утверждать заявку. 
-                2. Заявка отправляется  последовательно и не может быть подписана очередным участником, пока она не прошла все предыдущие шаги цепочки. 
-                3. Если  в заявке указано несколько людей с одинаковой ролью, то заявка отправляется участникам в том порядке, в каком они указаны.
-                4. Заявку можно утвердить/отклонить кнопкой из письма или непосредственно в системе. 
-                5. При отклонении заявки указывать причину обязательно. 
-                6. В любой момент менеджер может увидеть список и состояние всех пришедших к нему заявок.
-                
-            Утверждение заявки менеджерами
-            Заявки бывают следующих типов:  
-                • Заявки утверждаемые цепочкой менеджеров, зависящей от проектной роли (должности) человека и его участием в проекте: 
-                    ◦ Очередной оплачиваемый отпуск (Paid leave)
-                    ◦ Административный (неоплачиваемый) отпуск  (Administrative unpaid leave)
-                    ◦ Учебный отпуск (Study leave)
-                • Заявка утверждаемые только бухгалтерией:  
-                    ◦ Административный отпуск по причине форс-мажора (Force majeure administrative leave)
-                    ◦ Социальный отпуск (Social leave)
-                • Заявка на больничный, которая также утверждается только бухгалтерией:  
-                    ◦ Больничный с больничным листом (Sick leave with documents)
-                    ◦ Больничный без больничного листа (Sick leave without documents)
-    
-            Сценарии использования: Утверждение заявки на отпуск   
-            Из письма
-                1. Пользователь, представитель бухгалтерии или менеджер, получает на почту письмо о том, что ему надо утвердить заявку на отпуск.
-                2. Пользователь внимательно ознакамливается с информацией в заявке и нажимает “Утвердить” в письме.
-                3. Открывается страница системы “Отпуск” с сообщением:”The request is approved!” (”Заявка успешно утверждена!”).
-                4. В случае если требуется дальнейшее подтверждение заявки, следующий в цепочке менеджеров получает соответствующее письмо.  Заявка остается в состоянии:In progress (”В процессе”), но исчезает из списка заявок требующих утверждения данного пользователя, переходя в список заявок утвержденных им. 
-                5. В случае если дальнейшее подтверждение заявки не требуется, на почту бухгалтерии и человека оставившего заявку приходят соответствующие письма. Заявка переходит в состояние:Approved (”Утверждена”).
-            Из системы “Отпуск”
-                1. Пользователь, представитель бухгалтерии или менеджер, входит в систему “Отпуск”, используя свои доменные логин-пароль.
-                2. Пользователь видит список заявок, требующих его утверждения.
-                3. Пользователь внимательно ознакамливается с информацией в заявке и нажимает “Утвердить” для соответствующей заявки.
-                4. Открывается страница системы “Отпуск” с сообщением:”The request is approved!” (”Заявка успешно утверждена!”).
-                5. В случае если требуется дальнейшее подтверждение заявки, следующий в цепочке менеджеров получает соответствующее письмо.  Заявка остается в состоянии:In progress (”В процессе”), но исчезает из списка заявок требующих утверждения данного пользователя, переходя в список заявок утвержденных им. 
-                6. В случае если дальнейшее подтверждение заявки не требуется, на почту бухгалтерии и человека оставившего заявку приходят соответствующие письма. Заявка переходит в состояние:Approved (”Утверждена”).
-             */
-            //	Получить текушего менеджера
-            //	подписать usersignature
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var userSignatureRepository = new UserSignatureRepository();
+            var userSignature = await userSignatureRepository.SelectOneAsync(userId, id, token);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectAsync(id, token);
+
+            if (userSignature == null || request == null)
+            {
+                return NoContent();
+            }
+
+            if (userSignature.NInQueue != 0)
+            {
+                return BadRequest("Not your turn");
+            }
+
+            if (userSignature.Approved)
+            {
+                return BadRequest("Already approved");
+            }
+
+            if (request.StateDetailId != (int) StateDetails.New &&
+                request.StateDetailId != (int) StateDetails.InProgress)
+            {
+                var enumRepository = new EnumRepository();
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.StateDetail: {state.Type}");
+            }
+
+            await userSignatureRepository.ConfirmSignatureAsync(userSignature, token);
+
+            //Send email next manager
+
+            return Ok("Ok");
         }
 
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpGet]
-        void RequestRejected(int requestId)
+        public async Task<ActionResult<string>> RejectRequest(
+            [FromQuery(Name = "id")] int id,
+            [FromQuery(Name = "reason")] string reason,
+            CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var userSignatureRepository = new UserSignatureRepository();
+            var userSignature = await userSignatureRepository.SelectOneAsync(userId, id, token);
+
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectAsync(id, token);
+
+            if (userSignature == null || request == null)
+            {
+                return NoContent();
+            }
+
+            if (userSignature.NInQueue != 0)
+            {
+                return BadRequest("Not your turn");
+            }
+
+            if (userSignature.Approved)
+            {
+                return BadRequest("Already approved");
+            }
+
+            if (request.StateDetailId != (int) StateDetails.New &&
+                request.StateDetailId != (int) StateDetails.InProgress)
+            {
+                var enumRepository = new EnumRepository();
+                var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
+                return BadRequest($"Request.StateDetail: {state.Type}");
+            }
+
+
+            //userSignature.Reason = reason;
+            await userSignatureRepository.UpdateAsync(userSignature, token);
+
+            request.StateDetailId = (int) StateDetails.Rejected;
+            await requestRepository.UpdateAsync(request, token);
+
+            //Send email to Accountant about Rejecting
+
+            return Ok("Ok");
+
+
             /*
-             Сценарии использования: Отклонение заявки на отпуск   
              Из письма
-                1. Пользователь, представитель бухгалтерии или менеджер, получает на почту письмо о том, что ему надо утвердить заявку на отпуск.
-                2. Пользователь внимательно ознакамливается с информацией в заявке и нажимает “Отклонить” в письме.
                 3. Открывается страница системы “Отпуск”, на которой пользователь вводит причину отказа. 
                 4. Заявка переходит в состояние: Rejected (”Отклонена”),  исчезает из списка заявок требующих утверждения данного пользователя, переходя в список заявок отклоненных им. 
                 5. На почту человека оставившего заявку приходит соответствующее письмо. Заявка переходит в состояние: Rejected (”Отклонена”).
@@ -89,12 +150,21 @@ namespace TimeOffTracker.Controllers
          */
         }
 
-        [HttpGet]
-        List<Request> GetRequests(RequestDto filter)
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
+        [HttpPost]
+        public async Task<ActionResult<string>> GetRequests([FromBody] RequestDto filter,
+            [FromQuery(Name = "page")] int page,
+            [FromQuery(Name = "pageSize")] int pageSize, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+            filter.UserId = userId;
+
             //	Получить по фильтру
             //	Менеджер или Бугалтерия видит список заявок, требующих их утверждения.
-            return new List<Request>();
+            return Ok();
         }
 
         [HttpGet]

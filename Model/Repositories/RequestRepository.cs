@@ -40,6 +40,13 @@ namespace TimeOffTracker.Model.Repositories
             return request.Id;
         }
 
+        public async Task UpdateAsync(Request request, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            context.Requests.Update(request);
+            await context.SaveChangesAsync(token);
+        }
+
         public async Task<Request> SelectByIdAndUserIdAsync(int id, int userId, CancellationToken token)
         {
             await using var context = new masterContext();
@@ -62,6 +69,15 @@ namespace TimeOffTracker.Model.Repositories
                     r.Id == id &&
                     r.UserId == userId
                 )
+                .Include(r => r.UserSignatures
+                    .Where(us => us.Deleted == false))
+                .FirstOrDefaultAsync(token);
+        }
+
+        public async Task<Request> SelectAsync(int id, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests.Where(r => r.Id == id)
                 .Include(r => r.UserSignatures
                     .Where(us => us.Deleted == false))
                 .FirstOrDefaultAsync(token);

@@ -56,6 +56,13 @@ namespace TimeOffTracker.Model.Repositories
             return userSignatures;
         }
 
+        public async Task UpdateAsync(UserSignature us, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            context.UserSignatures.Update(us);
+            await context.SaveChangesAsync(token);
+        }
+
         public async Task<UserSignature> SelectOneAsync(int userId, int requestId, CancellationToken token)
         {
             await using var context = new masterContext();
