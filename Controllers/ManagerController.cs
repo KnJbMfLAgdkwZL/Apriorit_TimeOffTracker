@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Routing.Matching;
 using PagedList;
 using TimeOffTracker.Model.Enum;
 
@@ -85,15 +86,29 @@ namespace TimeOffTracker.Controllers
             }
 
             await userSignatureRepository.ConfirmSignatureAsync(userSignature, token);
+            var userSignatures =
+                await userSignatureRepository.SelectAllNotApprovedByIdAsync(userSignature.RequestId, token);
 
-            //Send email next manager
+            if (userSignatures.Count <= 0)
+            {
+                var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
+                req.StateDetailId = (int) StateDetails.Approved;
+                await requestRepository.UpdateAsync(req, token);
+
+                //Send email to Accounting
+            }
+
+            if (userSignatures.Count > 0)
+            {
+                //Send email next manager
+            }
 
             return Ok("Ok");
         }
 
         /// <summary>
         /// Отклонить заявку на отпуск
-        /// GET: /Manager/RejectRequest?id=10
+        /// GET: /Manager/RejectRequest?id=19&reason=to long
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -149,11 +164,11 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Reason not set");
             }
 
-            userSignature.Reason = reason;
-            await userSignatureRepository.UpdateAsync(userSignature, token);
-
             request.StateDetailId = (int) StateDetails.Rejected;
             await requestRepository.UpdateAsync(request, token);
+
+            userSignature.Reason = reason;
+            await userSignatureRepository.UpdateAsync(userSignature, token);
 
             //Send email to Accountant about Rejecting
 
@@ -236,7 +251,13 @@ namespace TimeOffTracker.Controllers
                 return NoContent();
             }
 
-            return Ok(request);
+            return Ok(new
+            {
+                Request = Converter.EntityToDto(request),
+                UserSignatures = request.UserSignatures is {Count: > 0}
+                    ? request.UserSignatures.Select(Converter.EntityToDto).ToList()
+                    : new List<UserSignatureDto>()
+            });
         }
     }
 }
