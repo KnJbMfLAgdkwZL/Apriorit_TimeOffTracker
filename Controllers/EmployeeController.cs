@@ -473,7 +473,7 @@ namespace TimeOffTracker.Controllers
         }
 
         ///  <summary>
-        /// Получить детали детальную информацию о заявке
+        /// Получить детальную информацию о заявке
         ///  GET: /Employee/GetRequestDetails?id=10
         ///  Header
         ///  {

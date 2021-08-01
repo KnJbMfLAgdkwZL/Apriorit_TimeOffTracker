@@ -35,6 +35,17 @@ namespace TimeOffTracker.Controllers
     [Authorize(Roles = "Manager, Accounting")]
     public class ManagerController : ControllerBase
     {
+        /// <summary>
+        /// Одобрить заявку на отпуск
+        /// GET: /Manager/AcceptRequest?id=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id">ид запроса</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpGet]
@@ -80,6 +91,18 @@ namespace TimeOffTracker.Controllers
             return Ok("Ok");
         }
 
+        /// <summary>
+        /// Отклонить заявку на отпуск
+        /// GET: /Manager/RejectRequest?id=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id">ид запроса</param>
+        /// <param name="reason">причина отказа</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpGet]
@@ -137,6 +160,27 @@ namespace TimeOffTracker.Controllers
             return Ok("Ok");
         }
 
+        /// <summary>
+        /// Получить список запросов, в которых был указан текущий менеджер
+        /// POST: /Manager/GetRequests?page=3&pageSize=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="filter">
+        /// Получить все заявки
+        /// Body
+        /// {
+        ///     "RequestTypeId": 0,
+        ///     "StateDetailId": 0,
+        ///     "Reason": ""
+        /// }
+        /// </param>
+        /// <param name="page">Текущая страница</param>
+        /// <param name="pageSize">Размер страницы</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
         [HttpPost]
@@ -149,40 +193,50 @@ namespace TimeOffTracker.Controllers
             var userId = int.Parse(userIdStr);
             filter.UserId = userId;
 
-            //	Получить по фильтру
-            //	Менеджер или Бугалтерия видит список заявок, требующих их утверждения.
-            return Ok();
+            var userSignatureRepository = new UserSignatureRepository();
+            var requests = await userSignatureRepository.SelectAllRequestsAsync(userId, filter, token);
+
+            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
+            var result = new
+            {
+                page = page,
+                pageSize = pageSize,
+                totalPages = totalPages,
+                requests = requestsDto,
+            };
+
+            return Ok(result);
         }
 
+        /// <summary>
+        /// Получить детальную информацию о заявке, в которой был указан текущий менеджер
+        /// GET: /Manager/GetRequestDetails?id=10
+        /// Header
+        /// {
+        ///     Authorization: Bearer {TOKEN}
+        /// }
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200, Type = typeof(string))]
+        [ProducesResponseType(404)]
         [HttpGet]
-        Request GetRequestDetails(int id)
+        public async Task<ActionResult<string>> GetRequestDetails([FromQuery(Name = "id")] int id,
+            CancellationToken token)
         {
-            return new Request();
+            token.ThrowIfCancellationRequested();
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var userSignatureRepository = new UserSignatureRepository();
+            var request = await userSignatureRepository.SelectRequestAsync(id, userId, token);
+            if (request == null)
+            {
+                return NoContent();
+            }
+
+            return Ok(request);
         }
-        /*
-         Ошибки
-        Менеджера и бугалтерии YES
-            1.Пользователь пытается повторно утвердить заявку из письма
-                В открывшейся системе “Отпуск”, пользователь получает  сообщение:
-                ”The request has already been approved!” (“Заявка уже успешно утверждена!”)
-            
-            2.Пользователя убрали из списка людей, которые должны утвердить заявку, и пользователь 
-            пытается утвердить заявку из письма.  Или же роль пользователя сменили с Менеджера на
-            Сотрудник и он пытается утвердить заявку из письма.
-                В открывшейся системе “Отпуск”, пользователь получает  сообщение:
-                ”The request is not actual!” (“Заявка не актуальна!”)
-            
-            3.Пользователь не залогинен в систему Отпуск и пытается утвердить заявку из письма.
-                Сперва открывается страница логина, после корректного ввода логин/пароля пользователь получает страницу
-                с сообщением, что заявка утверждена.
-                
-        Менеджера И бугалтерии NO
-            1. Пользователь пытается отклонить/подтвердить отклоненную заявку из письма
-                В открывшейся системе “Отпуск”, пользователь получает  сообщение:”The request has already been rejected!” (“Заявка уже отклонена!”)
-            2. Пользователя убрали из списка людей, которые должны утвердить заявку, и пользователь пытается отклонить заявку из письма. Или роль изменена на Сотрудник  и пользователь пытается отклонить заявку
-                В открывшейся системе “Отпуск”, пользователь получает  сообщение:”The request is not actual!” (“Заявка не актуальна!”)
-            3. Пользователь не залогинен в систему Отпуск и пытается отменить заявку из письма.
-                Сперва открывается страница логина, после корректного ввода логин/пароля пользователь получает страницу для ввода причины отмены заявки. .
-         */
     }
 }

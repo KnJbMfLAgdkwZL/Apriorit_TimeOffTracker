@@ -7,6 +7,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PagedList.EntityFramework;
+using TimeOffTracker.Model.Enum;
 
 namespace TimeOffTracker.Model.Repositories
 {
@@ -43,6 +44,59 @@ namespace TimeOffTracker.Model.Repositories
             }
 
             await context.SaveChangesAsync(token);
+        }
+
+        public async Task<List<Request>> SelectAllRequestsAsync(int userId, RequestDto filter, CancellationToken token)
+        {
+            await using var context = new masterContext();
+
+            var userSignatures = await context.UserSignatures.Where(us =>
+                us.UserId == userId &&
+                us.Deleted == false
+            ).ToListAsync(token);
+
+            var requests = new List<Request>();
+            foreach (var us in userSignatures)
+            {
+                var request = await context.Requests.Where(r =>
+                    r.Id == us.RequestId &&
+                    r.StateDetailId != (int) StateDetails.Deleted
+                ).FirstOrDefaultAsync(token);
+
+                if (request != null)
+                {
+                    requests.Add(request);
+                }
+            }
+
+            var result = requests.Where(r =>
+                (filter.RequestTypeId == 0 || r.RequestTypeId == (int) filter.RequestTypeId) &&
+                (filter.StateDetailId == 0 || r.StateDetailId == (int) filter.StateDetailId) &&
+                EF.Functions.Like(r.Reason, $"%{filter.Reason}%")
+            ).ToList();
+
+            return result;
+        }
+
+        public async Task<Request> SelectRequestAsync(int requestId, int userSignatureId, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            var userSignature = await context.UserSignatures.Where(us =>
+                us.RequestId == requestId &&
+                us.UserId == userSignatureId &&
+                us.Deleted == false).FirstOrDefaultAsync(token);
+
+            if (userSignature != null)
+            {
+                return await context.Requests
+                    .Where(r =>
+                        r.Id == userSignature.RequestId &&
+                        r.StateDetailId != (int) StateDetails.Deleted)
+                    .Include(r => r.UserSignatures)
+                    .FirstOrDefaultAsync(token);
+            }
+
+            return null;
         }
 
         public async Task<List<UserSignature>> SelectAllNotApprovedByIdAsync(int id, CancellationToken token)
