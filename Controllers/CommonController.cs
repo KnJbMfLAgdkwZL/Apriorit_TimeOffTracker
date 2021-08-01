@@ -6,6 +6,9 @@ using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
 using TimeOffTracker.Model.Enum;
+using System.Linq;
+using System.Security.Claims;
+using TimeOffTracker.Model;
 
 namespace TimeOffTracker.Controllers
 {
@@ -64,6 +67,28 @@ namespace TimeOffTracker.Controllers
             token.ThrowIfCancellationRequested();
             var enumRepository = new EnumRepository();
             return Ok(enumRepository.GetAll<UserRoles>());
+        }
+
+        [ProducesResponseType(200, Type = typeof(List<EnumDto>))]
+        [ProducesResponseType(404)]
+        [HttpGet]
+        public async Task<ActionResult<string>> GetCurrentUser(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var userIdStr = User.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var userId = int.Parse(userIdStr);
+
+            var userRepository = new UserRepository();
+            var user = await userRepository.SelectByIdAsync(userId, token);
+            if (user == null)
+            {
+                return NoContent();
+            }
+
+            user.Password = "";
+            var userDto = Converter.EntityToDto(user);
+            return Ok(userDto);
         }
     }
 }

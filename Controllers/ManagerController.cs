@@ -259,5 +259,31 @@ namespace TimeOffTracker.Controllers
                     : new List<UserSignatureDto>()
             });
         }
+
+        [ProducesResponseType(200, Type = typeof(List<EnumDto>))]
+        [ProducesResponseType(404)]
+        [HttpGet]
+        public async Task<ActionResult<string>> GetEmployee([FromQuery(Name = "id")] int id, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var userRepository = new UserRepository();
+            var user = await userRepository.SelectByIdAsync(id, token);
+            if (user == null)
+            {
+                return NoContent();
+            }
+
+            if (user.RoleId != (int) UserRoles.Employee)
+            {
+                return BadRequest("User not Employee");
+            }
+
+            user.Login = "";
+            user.Password = "";
+            var userDto = Converter.EntityToDto(user);
+
+            return Ok(userDto);
+        }
     }
 }
