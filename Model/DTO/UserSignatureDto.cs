@@ -8,5 +8,6 @@
         public int UserId { get; set; }
         public bool Approved { get; set; }
         public bool Deleted { get; set; }
+        public string Reason { get; set; }
     }
 }
