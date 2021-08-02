@@ -45,7 +45,8 @@ namespace TimeOffTracker.Model
                 RequestId = dto.RequestId,
                 UserId = dto.UserId,
                 Approved = dto.Approved,
-                Deleted = dto.Deleted
+                Deleted = dto.Deleted,
+                Reason = dto.Reason
             };
         }
 
@@ -89,7 +90,8 @@ namespace TimeOffTracker.Model
                 RequestId = entity.RequestId,
                 UserId = entity.UserId,
                 Approved = entity.Approved,
-                Deleted = entity.Deleted
+                Deleted = entity.Deleted,
+                Reason = entity.Reason
             };
         }
     }

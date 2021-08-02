@@ -472,8 +472,27 @@ namespace TimeOffTracker.Controllers
             return Ok(managersDto);
         }
 
+        [ProducesResponseType(200, Type = typeof(List<UserDto>))]
+        [ProducesResponseType(404)]
+        [HttpGet]
+        public async Task<ActionResult<List<UserDto>>> GetAccounting(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var userRepository = new UserRepository();
+            var managers = await userRepository.SelectAllByRoleAsync(UserRoles.Accounting, token);
+            var managersDto = new List<UserDto>();
+            foreach (var mDto in managers.Select(Converter.EntityToDto))
+            {
+                mDto.Login = "";
+                mDto.Password = "";
+                managersDto.Add(mDto);
+            }
+
+            return Ok(managersDto);
+        }
+
         ///  <summary>
-        /// Получить детали детальную информацию о заявке
+        /// Получить детальную информацию о заявке
         ///  GET: /Employee/GetRequestDetails?id=10
         ///  Header
         ///  {

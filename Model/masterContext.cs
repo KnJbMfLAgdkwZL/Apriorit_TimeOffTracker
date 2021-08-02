@@ -153,6 +153,11 @@ namespace TimeOffTracker.Model
 
                 entity.Property(e => e.NInQueue).HasColumnName("N_in_queue");
 
+                entity.Property(e => e.Reason)
+                    .HasMaxLength(250)
+                    .IsUnicode(false)
+                    .HasColumnName("reason");
+
                 entity.Property(e => e.RequestId).HasColumnName("request_id");
 
                 entity.Property(e => e.UserId).HasColumnName("user_id");

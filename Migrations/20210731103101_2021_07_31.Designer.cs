@@ -10,8 +10,8 @@ using TimeOffTracker.Model;
 namespace TimeOffTracker.Migrations
 {
     [DbContext(typeof(masterContext))]
-    [Migration("20210723130240_2021_07_23")]
-    partial class _2021_07_23
+    [Migration("20210731103101_2021_07_31")]
+    partial class _2021_07_31
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -162,6 +162,12 @@ namespace TimeOffTracker.Migrations
                     b.Property<int>("NInQueue")
                         .HasColumnType("int")
                         .HasColumnName("N_in_queue");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(250)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(250)")
+                        .HasColumnName("reason");
 
                     b.Property<int>("RequestId")
                         .HasColumnType("int")

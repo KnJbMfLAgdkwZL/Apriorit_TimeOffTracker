@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TimeOffTracker.Migrations
 {
-    public partial class _2021_07_23 : Migration
+    public partial class _2021_07_31 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -71,7 +71,8 @@ namespace TimeOffTracker.Migrations
                     request_id = table.Column<int>(type: "int", nullable: false),
                     user_id = table.Column<int>(type: "int", nullable: false),
                     approved = table.Column<bool>(type: "bit", nullable: false),
-                    deleted = table.Column<bool>(type: "bit", nullable: false)
+                    deleted = table.Column<bool>(type: "bit", nullable: false),
+                    reason = table.Column<string>(type: "varchar(250)", unicode: false, maxLength: 250, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -148,18 +149,6 @@ namespace TimeOffTracker.Migrations
                 schema: "_public",
                 table: "User_Signature",
                 column: "user_id");
-            
-            
-            //Data initialization
-            migrationBuilder.Sql(@"insert into _public.[User] (email, login, first_name, second_name, password, role_id, deleted) values 
-                (N'admin@a.com', N'admin', N'admin', N'admin', N'admin', 1, 0),
-                (N'accounting@a.com', N'accounting', N'accounting', N'accounting', N'accounting', 2, 0),
-                (N'employee@a.com', N'employee', N'employee', N'employee', N'employee', 3, 0),
-                (N'manager@a.com', N'manager', N'manager', N'manager', N'manager', 4, 0);
-            ");
-            
-            
-            
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
