@@ -11,6 +11,7 @@ using TimeOffTracker.Model.Repositories;
 using System.Collections.Generic;
 using PagedList;
 using TimeOffTracker.Model.Enum;
+using TimeOffTracker.Services;
 
 namespace TimeOffTracker.Controllers
 {
@@ -28,6 +29,13 @@ namespace TimeOffTracker.Controllers
     [Authorize(Roles = "Employee, Manager")]
     public class EmployeeController : ControllerBase
     {
+        private MailNotification _mailNotification;
+
+        public EmployeeController(MailNotification mailNotification)
+        {
+            _mailNotification = mailNotification;
+        }
+
         /// <summary>
         /// Создает новую заявку на отпуск
         /// POST: /Employee/СreateRequest
@@ -74,7 +82,7 @@ namespace TimeOffTracker.Controllers
             requestDto.UserId = userId;
 
             //Если список подписчиков не задан, создаем пустой лист
-            requestDto.UserSignatureDto ??= new List<UserSignatureDto>();
+            requestDto.UserSignature ??= new List<UserSignatureDto>();
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
             var result = await requestCrud.CheckRequestAsync(requestDto, token);
@@ -263,7 +271,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var requestCrud = new TimeOffTracker.CRUD.Request();
-            var result = await requestCrud.CheckManagersAsync(requestDto.UserSignatureDto, token);
+            var result = await requestCrud.CheckManagersAsync(requestDto.UserSignature, token);
             if (!result)
             {
                 return BadRequest("Wrong Manager set");
@@ -272,7 +280,7 @@ namespace TimeOffTracker.Controllers
             var userSignatureRepository = new UserSignatureRepository();
 
             await userSignatureRepository.DeleteAllNotApprovedAsync(requestDto.Id, token);
-            await requestCrud.AddUserSignatureAsync(requestDto.UserSignatureDto, requestDto.Id, 0, token);
+            await requestCrud.AddUserSignatureAsync(requestDto.UserSignature, requestDto.Id, 0, token);
 
             // SendMaill
 
@@ -514,9 +522,8 @@ namespace TimeOffTracker.Controllers
         ///          "stateDetailId": 1,
         ///          "dateTimeFrom": "2021-07-25T00:00:00",
         ///          "dateTimeTo": "2021-07-26T00:00:00",
-        ///          "userSignatureDto": null
-        ///      },
-        ///      "userSignatures": [us1, us2, us3]
+        ///          "userSignatures": [us1, us2, us3]
+        ///      }
         /// }
         ///  </returns>
         [ProducesResponseType(200, Type = typeof(string))]
@@ -530,19 +537,15 @@ namespace TimeOffTracker.Controllers
             var userId = int.Parse(userIdStr);
 
             var requestRepository = new RequestRepository();
-            var request = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
-            if (request == null)
+            var request1 = await requestRepository.SelectByIdAndUserIdAsync(id, userId, token);
+            if (request1 == null)
             {
                 return base.NoContent();
             }
 
-            return Ok(new
-            {
-                Request = Converter.EntityToDto(request),
-                UserSignatures = request.UserSignatures is {Count: > 0}
-                    ? request.UserSignatures.Select(Converter.EntityToDto).ToList()
-                    : new List<UserSignatureDto>()
-            });
+            var request = await requestRepository.SelectFullAsync(id, token);
+            var requestDto = Converter.EntityToDto(request);
+            return Ok(requestDto);
         }
 
         /// <summary>
