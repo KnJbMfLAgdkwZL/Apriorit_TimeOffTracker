@@ -83,6 +83,16 @@ namespace TimeOffTracker.Model.Repositories
                 .FirstOrDefaultAsync(token);
         }
 
+        public async Task<Request> SelectFullAsync(int id, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests.Where(r => r.Id == id)
+                .Include(r => r.UserSignatures
+                    .Where(us => us.Deleted == false))
+                .Include(u => u.User)
+                .FirstOrDefaultAsync(token);
+        }
+
         public async Task<Request> SelectNotIncludeAsync(int id, CancellationToken token)
         {
             await using var context = new masterContext();
