@@ -9,6 +9,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using TimeOffTracker.Middlewares;
 using TimeOffTracker.Model;
+using TimeOffTracker.Services;
+using TimeOffTracker.Services.EmailService;
 
 namespace TimeOffTracker
 {
@@ -57,6 +59,9 @@ namespace TimeOffTracker
 
             var configurationSectionEmailService = Configuration.GetSection("Email");
             services.Configure<EmailOptions>(configurationSectionEmailService);
+
+            services.AddSingleton<IEmailService, EmailService>();
+            services.AddSingleton<MailNotification>();
 
             services.AddCors(options =>
             {

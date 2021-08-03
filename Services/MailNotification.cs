@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mail;
 using TimeOffTracker.Model;
 using TimeOffTracker.Model.Enum;
@@ -10,9 +13,9 @@ namespace TimeOffTracker.Services
     {
         private IEmailService _mail;
 
-        public MailNotification()
+        public MailNotification(IEmailService mail)
         {
-            //_mail = new EmailService.EmailService(emailOptions);
+            _mail = mail;
         }
 
         /// <summary>
@@ -25,23 +28,35 @@ namespace TimeOffTracker.Services
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
 
+            //var r = request.UserSignatures.Where(us => us.Approved == true).ToList();
+
+
             var subject =
                 $"Запрос на отпуск. Заявка {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            var body =
-                $"Запрос на отпуск!" +
-                $"Причина заявки: {request.Reason}" +
-                $"Тип: {requestType.Type}" +
-                $"Даты: {request.DateTimeFrom} - {request.DateTimeTo}" +
-                $"Тип заявки: {requestType.Type}" +
-                $"Причина заявки: {request.Reason}" +
-                $"Дата начала: {request.DateTimeFrom}" +
-                $"Дата конца: {request.DateTimeTo}" +
-                $"Роль: {projectRoleType.Type}" +
-                $"Комментарии: {request.ProjectRoleComment}" +
-                $"Кто: {request.User.SecondName} {request.User.FirstName}" +
-                $"Подписавшие: {request.UserSignatures}" +
-                $"Approve | Reject";
+            var body = $@"Запрос на отпуск!
+    Причина заявки: {request.Reason}
+    Тип заявки: {requestType.Type}
+    Причина заявки: {request.Reason}
+    Дата начала: {request.DateTimeFrom}
+    Дата конца : {request.DateTimeTo}
+    Роль: {projectRoleType.Type}
+    Комментарии: {request.ProjectRoleComment}
+    Кто: {request.User.SecondName} {request.User.FirstName}
+    Подписавшие: {request.UserSignatures}
+    Approve | Reject";
+
+            Console.WriteLine(subject);
+            Console.WriteLine(body);
+
+            foreach (var us in request.UserSignatures)
+            {
+                Console.WriteLine(us.User.Id);
+            }
+
+            var mailAddress = new MailAddress(request.User.Email);
+            
+            //_mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>

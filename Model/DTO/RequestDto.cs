@@ -16,6 +16,8 @@ namespace TimeOffTracker.Model.DTO
         public StateDetails StateDetailId { get; set; }
         public DateTime DateTimeFrom { get; set; }
         public DateTime DateTimeTo { get; set; }
-        public List<UserSignatureDto> UserSignatureDto { get; set; }
+        
+        public UserDto User { get; set; }
+        public List<UserSignatureDto> UserSignature { get; set; }
     }
 }

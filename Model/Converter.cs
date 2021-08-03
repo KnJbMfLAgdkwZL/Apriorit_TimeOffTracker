@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TimeOffTracker.Model.DTO;
 using TimeOffTracker.Model.Enum;
 
@@ -52,7 +53,7 @@ namespace TimeOffTracker.Model
 
         public static RequestDto EntityToDto(Request entity)
         {
-            return new RequestDto()
+            var requestDto = new RequestDto()
             {
                 Id = entity.Id,
                 RequestTypeId = (RequestTypes) entity.RequestTypeId,
@@ -64,6 +65,22 @@ namespace TimeOffTracker.Model
                 DateTimeFrom = entity.DateTimeFrom,
                 DateTimeTo = entity.DateTimeTo
             };
+
+            requestDto.UserSignature ??= new List<UserSignatureDto>();
+            if (entity.UserSignatures != null)
+            {
+                foreach (var us in entity.UserSignatures)
+                {
+                    requestDto.UserSignature.Add(EntityToDto(us));
+                }
+            }
+
+            if (entity.User != null)
+            {
+                requestDto.User = EntityToDto(entity.User);
+            }
+
+            return requestDto;
         }
 
         public static UserDto EntityToDto(User entity)
@@ -72,10 +89,10 @@ namespace TimeOffTracker.Model
             {
                 Id = entity.Id,
                 Email = entity.Email,
-                Login = entity.Login,
+                Login = "", //entity.Login,
                 FirstName = entity.FirstName,
                 SecondName = entity.SecondName,
-                Password = entity.Password,
+                Password = "", //entity.Password,
                 RoleId = (UserRoles) entity.RoleId,
                 Deleted = entity.Deleted
             };
@@ -83,7 +100,7 @@ namespace TimeOffTracker.Model
 
         public static UserSignatureDto EntityToDto(UserSignature entity)
         {
-            return new UserSignatureDto()
+            var userSignatureDto = new UserSignatureDto()
             {
                 Id = entity.Id,
                 NInQueue = entity.NInQueue,
@@ -91,8 +108,15 @@ namespace TimeOffTracker.Model
                 UserId = entity.UserId,
                 Approved = entity.Approved,
                 Deleted = entity.Deleted,
-                Reason = entity.Reason
+                Reason = entity.Reason,
             };
+
+            if (entity.User != null)
+            {
+                userSignatureDto.User = EntityToDto(entity.User);
+            }
+
+            return userSignatureDto;
         }
     }
 }
