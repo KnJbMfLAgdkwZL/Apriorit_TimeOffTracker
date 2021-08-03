@@ -3,7 +3,6 @@ import {Button, Col, Container, Row} from "reactstrap";
 import DatePicker from "react-datepicker";
 import Select from "react-select";
 import { TextField } from '@material-ui/core';
-import { TextareaAutosize } from '@material-ui/core';
 import {RequestSendingService} from "../../Services/RequestSendingService";
 import {URL} from "../../GlobalSettings/URL";
 import {Link} from "react-router-dom";
@@ -52,12 +51,12 @@ export class CreateRequest extends Component {
             error: false,
             errorValue: "",
             loading: false,
-            managerChoseRows: [],
             selectedManagers: null,
         }
         
         this._handleTextFiledProjectRoleChange = this._handleTextFiledProjectRoleChange.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
+        this.handleChangeTextAreaComment = this.handleChangeTextAreaComment.bind(this);
     }
 
     async componentDidMount(): Promise<void> {
@@ -95,7 +94,6 @@ export class CreateRequest extends Component {
         this.setState({
             loading: true,
         });
-        let a = this;
         await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/CheckDateCollision", {
             dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
             dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo)
@@ -131,19 +129,35 @@ export class CreateRequest extends Component {
         this.setState({
             loading: true,
         });
+        const a = this.state.selectedManagers?.map((manager, index) => ({
+            nInQueue: index,
+            userId: manager.value
+        }));
         await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/СreateRequest", {
             dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
             dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
             requestTypeId: this.state.selectedRequestType.value,
-            reason: this.state.textAreaComment
+            reason: this.state.textAreaComment,
+            projectRoleComment: this.state.textFieldProjectRole,
+            projectRoleTypeId: this.state.selectedProjectPart.value,
+            userSignatureDto: this.state.selectedManagers?.map((manager, index) => ({
+                nInQueue: index,
+                userId: manager.value
+            }))
         })
             .then(async res => {
-                console.log({
-                    dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
-                    dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
-                    requestTypeId: this.state.selectedRequestType.value,
-                    reason: this.state.textAreaComment
-                });
+                // console.log(JSON.stringify({
+                //     dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
+                //     dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
+                //     requestTypeId: this.state.selectedRequestType.value,
+                //     reason: this.state.textAreaComment,
+                //     projectRoleComment: this.state.textFieldProjectRole,
+                //     projectRoleTypeId: this.state.selectedProjectPart.value,
+                //     userSignatureDto: this.state.selectedManagers?.map((manager, index) => ({
+                //         nInQueue: index,
+                //         userId: manager.value
+                //     }))
+                // }));
                 if (res.status === 200) {
 
                 }
@@ -240,11 +254,8 @@ export class CreateRequest extends Component {
                     </Row>
                     <Row className="mt-2">
                         <Col>
-                            <TextareaAutosize
-                                value={this.state.textAreaComment}
-                                omChangeText={this.handleChangeTextAreaComment}
-                                multiline={true}
-                                numberOfLines={4}
+                            <textarea
+                                onChange={this.handleChangeTextAreaComment}
                             />
                         </Col>
                         {this.state.sick &&
@@ -316,6 +327,8 @@ export class CreateRequest extends Component {
                                 options={this.state.managerRows}
                                 className="basic-multi-select"
                                 classNamePrefix="select"
+                                value={this.state.selectedManagers}
+                                onChange={this.handleChangeManagers}
                             />
                         </Row>
                         }
@@ -374,17 +387,19 @@ export class CreateRequest extends Component {
     handleChangeDateTo = selectedOptionDateTo => {
         this.setState({selectedOptionDateTo});
     };
-
-    handleChangeTextAreaComment = textAreaComment => {
-        this.setState({textAreaComment});
-    };
+    
+    handleChangeTextAreaComment(e) {
+        this.setState({
+            textAreaComment: e.target.value
+        })
+    }
 
     handleChangeProjectPart = selectedProjectPart => {
         this.setState({selectedProjectPart: selectedProjectPart});
     };
 
     handleChangeManagers = selectedManagers => {
-        this.setState({selectedManagers});
+        this.setState({selectedManagers: selectedManagers});
     };
 
     _handleTextFiledProjectRoleChange(e) {

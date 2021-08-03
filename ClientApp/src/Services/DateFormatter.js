@@ -5,8 +5,15 @@
         if (date.getDate() < 10) {
             dd = "0" + date.getDate();
         }
+        else {
+            dd = date.getDate();
+        }
+        
         if (date.getMonth() + 1 < 10) {
             mm = "0" + (date.getMonth() + 1);
+        }
+        else {
+            mm = (date.getMonth() + 1);
         }
         yyyy = date.getFullYear();
         
