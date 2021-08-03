@@ -52,6 +52,7 @@ export class CreateRequest extends Component {
             errorValue: "",
             loading: false,
             selectedManagers: null,
+            ok: false
         }
         
         this._handleTextFiledProjectRoleChange = this._handleTextFiledProjectRoleChange.bind(this);
@@ -99,10 +100,6 @@ export class CreateRequest extends Component {
             dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo)
         })
             .then(async response => {
-                console.log({
-                    dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
-                    dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo)
-                });
                 if (response.status === 200) {
                     await this.afterDateCheck();
                 }
@@ -129,10 +126,6 @@ export class CreateRequest extends Component {
         this.setState({
             loading: true,
         });
-        const a = this.state.selectedManagers?.map((manager, index) => ({
-            nInQueue: index,
-            userId: manager.value
-        }));
         await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/СreateRequest", {
             dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
             dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
@@ -146,20 +139,12 @@ export class CreateRequest extends Component {
             }))
         })
             .then(async res => {
-                // console.log(JSON.stringify({
-                //     dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
-                //     dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
-                //     requestTypeId: this.state.selectedRequestType.value,
-                //     reason: this.state.textAreaComment,
-                //     projectRoleComment: this.state.textFieldProjectRole,
-                //     projectRoleTypeId: this.state.selectedProjectPart.value,
-                //     userSignatureDto: this.state.selectedManagers?.map((manager, index) => ({
-                //         nInQueue: index,
-                //         userId: manager.value
-                //     }))
-                // }));
                 if (res.status === 200) {
-
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
                 }
                 else {
                     const d = await res.json().then(d => d);
@@ -220,7 +205,8 @@ export class CreateRequest extends Component {
                         <Col>
                             <center>
                                 <DatePicker
-                                    dateFormat="yyyy-MM-dd"
+                                    showTimeSelect
+                                    dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateFrom}
                                     onChange={this.handleChangeDateFrom}
                                 >
@@ -230,7 +216,8 @@ export class CreateRequest extends Component {
                         <Col>
                             <center>
                                 <DatePicker
-                                    dateFormat="yyyy-MM-dd"
+                                    showTimeSelect
+                                    dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateTo}
                                     onChange={this.handleChangeDateTo}
                                 >
@@ -338,7 +325,9 @@ export class CreateRequest extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                {!this.state.error ? "Create" : <font color="red"> {this.state.errorValue} </font>}
+                                {!this.state.error && this.state.ok && <font color="green"> Request hase been sent! </font>}
+                                {!this.state.error && !this.state.ok && "Create"}
+                                {this.state.error && !this.state.ok && <font color="red"> {this.state.errorValue} </font>}
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -348,8 +337,8 @@ export class CreateRequest extends Component {
                                 <Button
                                     outline
                                     block
-                                    color="danger">
-                                    Cancel
+                                    color="secondary">
+                                    Back
                                 </Button>
                             </Link>
                         </Col>
