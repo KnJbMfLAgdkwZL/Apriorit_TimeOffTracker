@@ -37,7 +37,7 @@ namespace TimeOffTracker.CRUD
             }
 
             //Добавляем бухгалтерию в список подписчиков
-            requestDto.UserSignatureDto.Add(new UserSignatureDto()
+            requestDto.UserSignature.Add(new UserSignatureDto()
             {
                 NInQueue = -1,
                 UserId = accounting.Id
@@ -47,7 +47,7 @@ namespace TimeOffTracker.CRUD
             var requestRepository = new RequestRepository();
             var requestId = await requestRepository.InsertAsync(requestDto, token);
 
-            await AddUserSignatureAsync(requestDto.UserSignatureDto, requestId, 0, token);
+            await AddUserSignatureAsync(requestDto.UserSignature, requestId, 0, token);
 
             return requestId;
         }
@@ -66,7 +66,7 @@ namespace TimeOffTracker.CRUD
             }
 
             //Добавляем бухгалтерию в список подписчиков
-            requestDto.UserSignatureDto.Add(new UserSignatureDto()
+            requestDto.UserSignature.Add(new UserSignatureDto()
             {
                 NInQueue = -1,
                 UserId = accounting.Id
@@ -79,7 +79,7 @@ namespace TimeOffTracker.CRUD
             //Удаляем старых подписчиков
             await userSignatureRepository.DeleteAllAsync(requestId, token);
             
-            await AddUserSignatureAsync(requestDto.UserSignatureDto, requestId, 0, token);
+            await AddUserSignatureAsync(requestDto.UserSignature, requestId, 0, token);
             
             return requestDto.Id;
         }
@@ -183,7 +183,7 @@ namespace TimeOffTracker.CRUD
             if (managers.Contains(requestDto.RequestTypeId))
             {
                 //Менеджер не был указан
-                if (requestDto.UserSignatureDto.Count <= 0)
+                if (requestDto.UserSignature.Count <= 0)
                 {
                     return "Manager not set";
                 }
@@ -201,7 +201,7 @@ namespace TimeOffTracker.CRUD
                 }
 
                 //Проверка менеджеров на наличие в базе
-                var checkPass = await CheckManagersAsync(requestDto.UserSignatureDto, token);
+                var checkPass = await CheckManagersAsync(requestDto.UserSignature, token);
                 if (!checkPass)
                 {
                     return "Wrong Manager set";
