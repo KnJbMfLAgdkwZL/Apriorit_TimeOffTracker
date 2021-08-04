@@ -93,17 +93,11 @@ namespace TimeOffTracker.Controllers
 
             var requestId = await requestCrud.CreateAsync(requestDto, token);
 
-            /*
-                Отсылаем уведомление на почту
-                бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
-            */
+            // Отсылаем уведомление на почту бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
 
             var requestRepository = new RequestRepository();
             var request = await requestRepository.SelectFullAsync(requestId, token);
-
             _mailNotification.SendRequest(request);
-
-            // SendMaill
 
             return requestId;
         }
@@ -212,6 +206,8 @@ namespace TimeOffTracker.Controllers
             await requestCrud.UpdateAsync(requestDto, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestDto.Id, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestDto.Id);
         }
@@ -288,6 +284,8 @@ namespace TimeOffTracker.Controllers
             await requestCrud.AddUserSignatureAsync(requestDto.UserSignature, requestDto.Id, 0, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestDto.Id, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestDto.Id);
         }
@@ -365,6 +363,8 @@ namespace TimeOffTracker.Controllers
             var requestId = await requestCrud.CreateAsync(requestDto, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestId, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestId);
         }
@@ -451,6 +451,8 @@ namespace TimeOffTracker.Controllers
             //SendEmaill
             //8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту,
             //как  и в случае отмены заявки в середины цепочки.
+            var requestFul = await requestRepository.SelectFullAsync(id, token);
+            _mailNotification.RejectedRequestAccountingAndMangers(requestFul);
 
             return Ok("Ok");
         }

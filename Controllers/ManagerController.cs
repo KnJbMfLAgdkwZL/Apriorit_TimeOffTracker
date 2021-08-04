@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Routing.Matching;
 using PagedList;
 using TimeOffTracker.Model.Enum;
+using TimeOffTracker.Services;
 
 namespace TimeOffTracker.Controllers
 {
@@ -36,6 +37,13 @@ namespace TimeOffTracker.Controllers
     [Authorize(Roles = "Manager, Accounting")]
     public class ManagerController : ControllerBase
     {
+        private MailNotification _mailNotification;
+
+        public ManagerController(MailNotification mailNotification)
+        {
+            _mailNotification = mailNotification;
+        }
+
         /// <summary>
         /// Одобрить заявку на отпуск
         /// GET: /Manager/AcceptRequest?id=10
@@ -77,8 +85,8 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Already approved");
             }
 
-            if (request.StateDetailId != (int) StateDetails.New &&
-                request.StateDetailId != (int) StateDetails.InProgress)
+            if (request.StateDetailId != (int)StateDetails.New &&
+                request.StateDetailId != (int)StateDetails.InProgress)
             {
                 var enumRepository = new EnumRepository();
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
@@ -89,18 +97,21 @@ namespace TimeOffTracker.Controllers
             var userSignatures =
                 await userSignatureRepository.SelectAllNotApprovedByIdAsync(userSignature.RequestId, token);
 
+            var requestFull = await requestRepository.SelectFullAsync(request.Id, token);
+
             if (userSignatures.Count <= 0)
             {
                 var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
-                req.StateDetailId = (int) StateDetails.Approved;
+                req.StateDetailId = (int)StateDetails.Approved;
                 await requestRepository.UpdateAsync(req, token);
 
-                //Send email to Accounting
+                _mailNotification.ApprovedRequestAccounting(requestFull);
+                _mailNotification.ApprovedRequestEmployee(requestFull);
             }
 
             if (userSignatures.Count > 0)
             {
-                //Send email next manager
+                _mailNotification.SendRequest(requestFull);
             }
 
             return Ok("Ok");
@@ -151,8 +162,8 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Already approved");
             }
 
-            if (request.StateDetailId != (int) StateDetails.New &&
-                request.StateDetailId != (int) StateDetails.InProgress)
+            if (request.StateDetailId != (int)StateDetails.New &&
+                request.StateDetailId != (int)StateDetails.InProgress)
             {
                 var enumRepository = new EnumRepository();
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
@@ -164,13 +175,16 @@ namespace TimeOffTracker.Controllers
                 return BadRequest("Reason not set");
             }
 
-            request.StateDetailId = (int) StateDetails.Rejected;
+            request.StateDetailId = (int)StateDetails.Rejected;
             await requestRepository.UpdateAsync(request, token);
 
             userSignature.Reason = reason;
             await userSignatureRepository.UpdateAsync(userSignature, token);
 
             //Send email to Accountant about Rejecting
+            var requestFull = await requestRepository.SelectFullAsync(request.Id, token);
+            _mailNotification.RejectedRequestEmployee(requestFull);
+            _mailNotification.RejectedRequestAccountingAndMangers(requestFull);
 
             return Ok("Ok");
         }
@@ -211,7 +225,7 @@ namespace TimeOffTracker.Controllers
             var userSignatureRepository = new UserSignatureRepository();
             var requests = await userSignatureRepository.SelectAllRequestsAsync(userId, filter, token);
 
-            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var totalPages = (int)Math.Ceiling((double)requests.Count / pageSize);
             var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
             var result = new
             {
@@ -254,7 +268,7 @@ namespace TimeOffTracker.Controllers
             return Ok(new
             {
                 Request = Converter.EntityToDto(request),
-                UserSignatures = request.UserSignatures is {Count: > 0}
+                UserSignatures = request.UserSignatures is { Count: > 0 }
                     ? request.UserSignatures.Select(Converter.EntityToDto).ToList()
                     : new List<UserSignatureDto>()
             });
@@ -274,7 +288,7 @@ namespace TimeOffTracker.Controllers
                 return NoContent();
             }
 
-            if (user.RoleId != (int) UserRoles.Employee)
+            if (user.RoleId != (int)UserRoles.Employee)
             {
                 return BadRequest("User not Employee");
             }

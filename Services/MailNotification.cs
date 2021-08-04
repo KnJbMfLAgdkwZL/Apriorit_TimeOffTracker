@@ -41,27 +41,29 @@ namespace TimeOffTracker.Services
             var subject =
                 $"Запрос на отпуск. Заявка {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            const string n = " <br/> ";
-
             var body =
-                $@"Запрос на отпуск! {n}
-                Кто: {request.User.SecondName} {request.User.FirstName} {n}
-                Статус заявки: {stateDetailType.Type} {n}
-                Причина заявки: {request.Reason} {n}
-                Тип заявки: {requestType.Type} {n}
-                Дата начала: {request.DateTimeFrom} {n}
-                Дата конца : {request.DateTimeTo} {n}
-                Роль на проекте: {projectRoleType.Type} {n}
-                Обязанности: {request.ProjectRoleComment} {n}
-                Подписавшие: {appr} {n}
-                Должны подписать: {wait} {n}
+                $@"
+                Запрос на отпуск!
+                Кто: {request.User.SecondName} {request.User.FirstName}
+                Статус заявки: {stateDetailType.Type}
+                Причина заявки: {request.Reason}
+                Тип заявки: {requestType.Type}
+                Дата начала: {request.DateTimeFrom}
+                Дата конца : {request.DateTimeTo}
+                Роль на проекте: {projectRoleType.Type}
+                Обязанности: {request.ProjectRoleComment}
+                Подписавшие: {appr}
+                Должны подписать: {wait}
+
                 Approve | Reject";
 
-            Console.WriteLine(subject);
-            Console.WriteLine(body);
+            var userSignature = request.UserSignatures
+                .FirstOrDefault(us => us.Approved == false && us.NInQueue == 0);
 
-            //var mailAddress = new MailAddress(request.User.Email);
-            //_mail.SendEmail(mailAddress, subject, body);
+            if (userSignature == null) return;
+
+            var mailAddress = new MailAddress(userSignature.User.Email);
+            _mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -87,23 +89,22 @@ namespace TimeOffTracker.Services
             var subject =
                 $"Ваша Заявка Утверждена [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            const string n = " <br/> ";
-
             var body =
-                $@"Ваша Заявка Утверждена! {n}
-                Кто: {request.User.SecondName} {request.User.FirstName} {n}
-                Статус заявки: {stateDetailType.Type} {n}
-                Причина заявки: {request.Reason} {n}
-                Тип заявки: {requestType.Type} {n}
-                Дата начала: {request.DateTimeFrom} {n}
-                Дата конца : {request.DateTimeTo} {n}
-                Роль на проекте: {projectRoleType.Type} {n}
-                Обязанности: {request.ProjectRoleComment} {n}
-                Подписавшие: {appr} {n}
-                Должны подписать: {wait} {n}";
+                $@"
+                Ваша Заявка Утверждена!
+                Кто: {request.User.SecondName} {request.User.FirstName}
+                Статус заявки: {stateDetailType.Type}
+                Причина заявки: {request.Reason}
+                Тип заявки: {requestType.Type}
+                Дата начала: {request.DateTimeFrom}
+                Дата конца : {request.DateTimeTo}
+                Роль на проекте: {projectRoleType.Type}
+                Обязанности: {request.ProjectRoleComment}
+                Подписавшие: {appr}
+                Должны подписать: {wait}";
 
-            //var mailAddress = new MailAddress(request.User.Email);
-            //_mail.SendEmail(mailAddress, subject, body);
+            var mailAddress = new MailAddress(request.User.Email);
+            _mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -129,22 +130,27 @@ namespace TimeOffTracker.Services
             var subject =
                 $"Заявка Утверждена {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            const string n = " <br/> ";
-
             var body =
-                $@"Заявка Утверждена! {n}
-                Кто: {request.User.SecondName} {request.User.FirstName} {n}
-                Статус заявки: {stateDetailType.Type} {n}
-                Причина заявки: {request.Reason} {n}
-                Тип заявки: {requestType.Type} {n}
-                Дата начала: {request.DateTimeFrom} {n}
-                Дата конца : {request.DateTimeTo} {n}
-                Роль на проекте: {projectRoleType.Type} {n}
-                Обязанности: {request.ProjectRoleComment} {n}
-                Подписавшие: {appr} {n}
-                Должны подписать: {wait} {n}";
+                $@"
+                Заявка Утверждена!
+                Кто: {request.User.SecondName} {request.User.FirstName}
+                Статус заявки: {stateDetailType.Type}
+                Причина заявки: {request.Reason}
+                Тип заявки: {requestType.Type}
+                Дата начала: {request.DateTimeFrom}
+                Дата конца : {request.DateTimeTo}
+                Роль на проекте: {projectRoleType.Type}
+                Обязанности: {request.ProjectRoleComment}
+                Подписавшие: {appr}
+                Должны подписать: {wait}";
 
-            //Получить 0 с типом бугалтер отправить ему письмо
+            var accounting =
+                request.UserSignatures.FirstOrDefault(us => us.Approved && us.User.RoleId == (int)UserRoles.Accounting);
+
+            if (accounting == null) return;
+
+            var mailAddress = new MailAddress(accounting.User.Email);
+            _mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -175,27 +181,26 @@ namespace TimeOffTracker.Services
             var subject =
                 $"Ваша Заявка Отклонена [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            const string n = " <br/> ";
-
             var body =
-                $@"Ваша Заявка Отклонена! {n}
-                Кто: {request.User.SecondName} {request.User.FirstName} {n}
-                Статус заявки: {stateDetailType.Type} {n}
-                Причина заявки: {request.Reason} {n}
-                Тип заявки: {requestType.Type} {n}
-                Дата начала: {request.DateTimeFrom} {n}
-                Дата конца : {request.DateTimeTo} {n}
-                Роль на проекте: {projectRoleType.Type} {n}
-                Обязанности: {request.ProjectRoleComment} {n}
-                Подписавшие: {appr} {n}
-                Должны подписать: {wait} {n}
-                Отклонена: {reje} {n}
-                Причина отклонения: {reason} {n}
+                $@"
+                Ваша Заявка Отклонена!
+                Кто: {request.User.SecondName} {request.User.FirstName}
+                Статус заявки: {stateDetailType.Type}
+                Причина заявки: {request.Reason}
+                Тип заявки: {requestType.Type}
+                Дата начала: {request.DateTimeFrom}
+                Дата конца : {request.DateTimeTo}
+                Роль на проекте: {projectRoleType.Type}
+                Обязанности: {request.ProjectRoleComment}
+                Подписавшие: {appr}
+                Должны подписать: {wait}
+                Отклонена: {reje}
+                Причина отклонения: {reason}
+
                 Вы можете учесть замечания и оставить новую заявку.";
 
-
-            //var mailAddress = new MailAddress(request.User.Email);
-            //_mail.SendEmail(mailAddress, subject, body);
+            var mailAddress = new MailAddress(request.User.Email);
+            _mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -223,26 +228,30 @@ namespace TimeOffTracker.Services
             var reje = string.Join(", ", rejected);
             var reason = rejectedUs.FirstOrDefault()?.Reason;
 
-            const string n = " <br/> ";
-
             var subject =
                 $"Заявка Отклонена {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
             var body =
-                $@"Заявка Отклонена! {n}
-                Кто: {request.User.SecondName} {request.User.FirstName} {n}
-                Статус заявки: {stateDetailType.Type} {n}
-                Причина заявки: {request.Reason} {n}
-                Тип заявки: {requestType.Type} {n}
-                Дата начала: {request.DateTimeFrom} {n}
-                Дата конца : {request.DateTimeTo} {n}
-                Роль на проекте: {projectRoleType.Type} {n}
-                Обязанности: {request.ProjectRoleComment} {n}
-                Подписавшие: {appr} {n}
-                Должны подписать: {wait} {n}
-                Отклонена: {reje} {n}
-                Причина отклонения: {reason} {n}";
-            
+                $@"
+                Заявка Отклонена!
+                Кто: {request.User.SecondName} {request.User.FirstName}
+                Статус заявки: {stateDetailType.Type}
+                Причина заявки: {request.Reason}
+                Тип заявки: {requestType.Type}
+                Дата начала: {request.DateTimeFrom}
+                Дата конца : {request.DateTimeTo}
+                Роль на проекте: {projectRoleType.Type}
+                Обязанности: {request.ProjectRoleComment}
+                Подписавшие: {appr}
+                Должны подписать: {wait}
+                Отклонена: {reje}
+                Причина отклонения: {reason}";
+
+            var userSignatures = request.UserSignatures.Where(us => us.Approved).ToList();
+            foreach (var mailAddress in userSignatures.Select(us => new MailAddress(us.User.Email)))
+            {
+                _mail.SendEmail(mailAddress, subject, body);
+            }
         }
     }
 }
