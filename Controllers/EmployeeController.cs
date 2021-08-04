@@ -596,7 +596,7 @@ namespace TimeOffTracker.Controllers
 
             var requestRepository = new RequestRepository();
 
-            var requests = await requestRepository.SelectAllAsync(filter, token);
+            var requests = await requestRepository.SelectAllFullAsync(filter, token);
 
             var totalPages = (int)Math.Ceiling((double)requests.Count / pageSize);
             var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
