@@ -98,6 +98,11 @@ namespace TimeOffTracker.Controllers
                 бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
             */
 
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectFullAsync(requestId, token);
+
+            _mailNotification.SendRequest(request);
+
             // SendMaill
 
             return requestId;
@@ -189,7 +194,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.New)
+            if (request.StateDetailId != (int)StateDetails.New)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -264,7 +269,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.InProgress)
+            if (request.StateDetailId != (int)StateDetails.InProgress)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -339,7 +344,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.Approved)
+            if (request.StateDetailId != (int)StateDetails.Approved)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -393,7 +398,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.New)
+            if (request.StateDetailId != (int)StateDetails.New)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -433,8 +438,8 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.InProgress &&
-                request.StateDetailId != (int) StateDetails.Approved)
+            if (request.StateDetailId != (int)StateDetails.InProgress &&
+                request.StateDetailId != (int)StateDetails.Approved)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -591,7 +596,7 @@ namespace TimeOffTracker.Controllers
 
             var requests = await requestRepository.SelectAllAsync(filter, token);
 
-            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var totalPages = (int)Math.Ceiling((double)requests.Count / pageSize);
             var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
             var result = new
             {

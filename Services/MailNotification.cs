@@ -27,35 +27,40 @@ namespace TimeOffTracker.Services
             var enumRepository = new EnumRepository();
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
+            var stateDetailType = enumRepository.GetById<StateDetails>(request.StateDetailId);
 
-            //var r = request.UserSignatures.Where(us => us.Approved == true).ToList();
+            var approved = request.UserSignatures.Where(us => us.Approved == true)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
 
+            var waiting = request.UserSignatures.Where(us => us.Approved == false)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var appr = string.Join(", ", approved);
+            var wait = string.Join(", ", waiting);
 
             var subject =
                 $"Запрос на отпуск. Заявка {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            var body = $@"Запрос на отпуск!
-    Причина заявки: {request.Reason}
-    Тип заявки: {requestType.Type}
-    Причина заявки: {request.Reason}
-    Дата начала: {request.DateTimeFrom}
-    Дата конца : {request.DateTimeTo}
-    Роль: {projectRoleType.Type}
-    Комментарии: {request.ProjectRoleComment}
-    Кто: {request.User.SecondName} {request.User.FirstName}
-    Подписавшие: {request.UserSignatures}
-    Approve | Reject";
+            const string n = " <br/> ";
+
+            var body =
+                $@"Запрос на отпуск! {n}
+                Кто: {request.User.SecondName} {request.User.FirstName} {n}
+                Статус заявки: {stateDetailType.Type} {n}
+                Причина заявки: {request.Reason} {n}
+                Тип заявки: {requestType.Type} {n}
+                Дата начала: {request.DateTimeFrom} {n}
+                Дата конца : {request.DateTimeTo} {n}
+                Роль на проекте: {projectRoleType.Type} {n}
+                Обязанности: {request.ProjectRoleComment} {n}
+                Подписавшие: {appr} {n}
+                Должны подписать: {wait} {n}
+                Approve | Reject";
 
             Console.WriteLine(subject);
             Console.WriteLine(body);
 
-            foreach (var us in request.UserSignatures)
-            {
-                Console.WriteLine(us.User.Id);
-            }
-
-            var mailAddress = new MailAddress(request.User.Email);
-            
+            //var mailAddress = new MailAddress(request.User.Email);
             //_mail.SendEmail(mailAddress, subject, body);
         }
 
@@ -68,26 +73,37 @@ namespace TimeOffTracker.Services
             var enumRepository = new EnumRepository();
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
+            var stateDetailType = enumRepository.GetById<StateDetails>(request.StateDetailId);
+
+            var approved = request.UserSignatures.Where(us => us.Approved == true)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var waiting = request.UserSignatures.Where(us => us.Approved == false)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var appr = string.Join(", ", approved);
+            var wait = string.Join(", ", waiting);
 
             var subject =
                 $"Ваша Заявка Утверждена [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            var body =
-                $"Ваша Заявка Утверждена!" +
-                $"Причина заявки: {request.Reason}" +
-                $"Тип: {requestType.Type}" +
-                $"Даты: {request.DateTimeFrom} - {request.DateTimeTo}" +
-                $"Тип заявки: {requestType.Type}" +
-                $"Причина заявки: {request.Reason}" +
-                $"Дата начала: {request.DateTimeFrom}" +
-                $"Дата конца: {request.DateTimeTo}" +
-                $"Роль: {projectRoleType.Type}" +
-                $"Комментарии: {request.ProjectRoleComment}" +
-                $"Кто: {request.User.SecondName} {request.User.FirstName}" +
-                $"Подписавшие: {request.UserSignatures}";
+            const string n = " <br/> ";
 
-            var mailAddress = new MailAddress(request.User.Email);
-            _mail.SendEmail(mailAddress, subject, body);
+            var body =
+                $@"Ваша Заявка Утверждена! {n}
+                Кто: {request.User.SecondName} {request.User.FirstName} {n}
+                Статус заявки: {stateDetailType.Type} {n}
+                Причина заявки: {request.Reason} {n}
+                Тип заявки: {requestType.Type} {n}
+                Дата начала: {request.DateTimeFrom} {n}
+                Дата конца : {request.DateTimeTo} {n}
+                Роль на проекте: {projectRoleType.Type} {n}
+                Обязанности: {request.ProjectRoleComment} {n}
+                Подписавшие: {appr} {n}
+                Должны подписать: {wait} {n}";
+
+            //var mailAddress = new MailAddress(request.User.Email);
+            //_mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -99,25 +115,35 @@ namespace TimeOffTracker.Services
             var enumRepository = new EnumRepository();
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
+            var stateDetailType = enumRepository.GetById<StateDetails>(request.StateDetailId);
+
+            var approved = request.UserSignatures.Where(us => us.Approved == true)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var waiting = request.UserSignatures.Where(us => us.Approved == false)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var appr = string.Join(", ", approved);
+            var wait = string.Join(", ", waiting);
 
             var subject =
                 $"Заявка Утверждена {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
-            var body =
-                $"Заявка Утверждена!" +
-                $"Причина заявки: {request.Reason}" +
-                $"Тип: {requestType.Type}" +
-                $"Даты: {request.DateTimeFrom} - {request.DateTimeTo}" +
-                $"Тип заявки: {requestType.Type}" +
-                $"Причина заявки: {request.Reason}" +
-                $"Дата начала: {request.DateTimeFrom}" +
-                $"Дата конца: {request.DateTimeTo}" +
-                $"Роль: {projectRoleType.Type}" +
-                $"Комментарии: {request.ProjectRoleComment}" +
-                $"Кто: {request.User.SecondName} {request.User.FirstName}" +
-                $"Подписавшие: {request.UserSignatures}";
+            const string n = " <br/> ";
 
-            //список всех утвердивших заявку через запятую
+            var body =
+                $@"Заявка Утверждена! {n}
+                Кто: {request.User.SecondName} {request.User.FirstName} {n}
+                Статус заявки: {stateDetailType.Type} {n}
+                Причина заявки: {request.Reason} {n}
+                Тип заявки: {requestType.Type} {n}
+                Дата начала: {request.DateTimeFrom} {n}
+                Дата конца : {request.DateTimeTo} {n}
+                Роль на проекте: {projectRoleType.Type} {n}
+                Обязанности: {request.ProjectRoleComment} {n}
+                Подписавшие: {appr} {n}
+                Должны подписать: {wait} {n}";
+
             //Получить 0 с типом бугалтер отправить ему письмо
         }
 
@@ -130,30 +156,46 @@ namespace TimeOffTracker.Services
             var enumRepository = new EnumRepository();
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
+            var stateDetailType = enumRepository.GetById<StateDetails>(request.StateDetailId);
+
+            var approved = request.UserSignatures.Where(us => us.Approved == true)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var waiting = request.UserSignatures.Where(us => us.Approved == false)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var rejectedUs = request.UserSignatures.Where(us => us.Approved == false && us.Reason.Length > 0).ToList();
+            var rejected = rejectedUs.Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var appr = string.Join(", ", approved);
+            var wait = string.Join(", ", waiting);
+            var reje = string.Join(", ", rejected);
+            var reason = rejectedUs.FirstOrDefault()?.Reason;
 
             var subject =
                 $"Ваша Заявка Отклонена [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
+            const string n = " <br/> ";
+
             var body =
-                $"Ваша Заявка Отклонена!" +
-                $"Причина заявки: {request.Reason}" +
-                $"Тип: {requestType.Type}" +
-                $"Даты: {request.DateTimeFrom} - {request.DateTimeTo}" +
-                $"Тип заявки: {requestType.Type}" +
-                $"Причина заявки: {request.Reason}" +
-                $"Дата начала: {request.DateTimeFrom}" +
-                $"Дата конца: {request.DateTimeTo}" +
-                $"Роль: {projectRoleType.Type}" +
-                $"Комментарии: {request.ProjectRoleComment}" +
-                $"Кто: {request.User.SecondName} {request.User.FirstName}" +
-                $"Подписавшие: {request.UserSignatures}" +
-                $"Отклонена: {request.UserSignatures}" +
-                $"Причина отклонения: <указанная причина отклонения заявки>" +
-                $"Вы можете учесть замечания и оставить новую заявку.";
+                $@"Ваша Заявка Отклонена! {n}
+                Кто: {request.User.SecondName} {request.User.FirstName} {n}
+                Статус заявки: {stateDetailType.Type} {n}
+                Причина заявки: {request.Reason} {n}
+                Тип заявки: {requestType.Type} {n}
+                Дата начала: {request.DateTimeFrom} {n}
+                Дата конца : {request.DateTimeTo} {n}
+                Роль на проекте: {projectRoleType.Type} {n}
+                Обязанности: {request.ProjectRoleComment} {n}
+                Подписавшие: {appr} {n}
+                Должны подписать: {wait} {n}
+                Отклонена: {reje} {n}
+                Причина отклонения: {reason} {n}
+                Вы можете учесть замечания и оставить новую заявку.";
 
 
-            var mailAddress = new MailAddress(request.User.Email);
-            _mail.SendEmail(mailAddress, subject, body);
+            //var mailAddress = new MailAddress(request.User.Email);
+            //_mail.SendEmail(mailAddress, subject, body);
         }
 
         /// <summary>
@@ -165,25 +207,42 @@ namespace TimeOffTracker.Services
             var enumRepository = new EnumRepository();
             var requestType = enumRepository.GetById<RequestTypes>(request.RequestTypeId);
             var projectRoleType = enumRepository.GetById<ProjectRoleTypes>(request.ProjectRoleTypeId);
+            var stateDetailType = enumRepository.GetById<StateDetails>(request.StateDetailId);
+
+            var approved = request.UserSignatures.Where(us => us.Approved == true)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var waiting = request.UserSignatures.Where(us => us.Approved == false)
+                .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var rejectedUs = request.UserSignatures.Where(us => us.Approved == false && us.Reason.Length > 0).ToList();
+            var rejected = rejectedUs.Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
+
+            var appr = string.Join(", ", approved);
+            var wait = string.Join(", ", waiting);
+            var reje = string.Join(", ", rejected);
+            var reason = rejectedUs.FirstOrDefault()?.Reason;
+
+            const string n = " <br/> ";
 
             var subject =
                 $"Заявка Отклонена {request.User.SecondName} {request.User.FirstName} [{request.Reason}] <{requestType.Type}> ({request.DateTimeFrom} - {request.DateTimeTo})";
 
             var body =
-                $"Заявка Отклонена!" +
-                $"Причина заявки: {request.Reason}" +
-                $"Тип: {requestType.Type}" +
-                $"Даты: {request.DateTimeFrom} - {request.DateTimeTo}" +
-                $"Тип заявки: {requestType.Type}" +
-                $"Причина заявки: {request.Reason}" +
-                $"Дата начала: {request.DateTimeFrom}" +
-                $"Дата конца: {request.DateTimeTo}" +
-                $"Роль: {projectRoleType.Type}" +
-                $"Комментарии: {request.ProjectRoleComment}" +
-                $"Кто: {request.User.SecondName} {request.User.FirstName}" +
-                $"Подписавшие: {request.UserSignatures}" +
-                $"Отклонена: {request.UserSignatures}" +
-                $"Причина отклонения: <указанная причина отклонения заявки>";
+                $@"Заявка Отклонена! {n}
+                Кто: {request.User.SecondName} {request.User.FirstName} {n}
+                Статус заявки: {stateDetailType.Type} {n}
+                Причина заявки: {request.Reason} {n}
+                Тип заявки: {requestType.Type} {n}
+                Дата начала: {request.DateTimeFrom} {n}
+                Дата конца : {request.DateTimeTo} {n}
+                Роль на проекте: {projectRoleType.Type} {n}
+                Обязанности: {request.ProjectRoleComment} {n}
+                Подписавшие: {appr} {n}
+                Должны подписать: {wait} {n}
+                Отклонена: {reje} {n}
+                Причина отклонения: {reason} {n}";
+            
         }
     }
 }
