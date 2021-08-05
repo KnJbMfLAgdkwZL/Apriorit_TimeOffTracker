@@ -1,5 +1,5 @@
 ﻿import React, {Component} from 'react';
-import {Container, Row, Col, Button} from 'reactstrap';
+import {Button, Col, Container, Row} from 'reactstrap';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Select from 'react-select';
@@ -7,15 +7,39 @@ import {RequestSendingService} from "../Services/RequestSendingService";
 import {URL} from "../GlobalSettings/URL";
 import DataGrid from "react-data-grid";
 import {Link} from "react-router-dom";
+import {StateDetailts} from "../Enums/StateDetailts";
+import {RequestTypes} from "../Enums/RequestTypes";
 
 const columns = [
     {key: 'state', name: 'state'},
     {key: 'type', name: 'type'},
-    {key: 'dates', name: 'dates'},
+    {key: 'dateFrom', name: 'dateFrom'},
+    {key: 'dateTo', name: 'dateTo'},
     {key: 'comment', name: 'my comment'},
     {key: 'details', name: 'state details'},
-    {key: 'view', name: 'view'}
 ];
+
+const stateOptions = [
+    {value: null, label: 'Any'},
+    {value: 1, label: StateDetailts["1"]},
+    {value: 2, label: StateDetailts["2"]},
+    {value: 3, label: StateDetailts["3"]},
+    {value: 4, label: StateDetailts["4"]},
+    {value: 5, label: StateDetailts["5"]},
+    {value: 6, label: StateDetailts["6"]},
+    {value: 7, label: StateDetailts["7"]},
+]
+
+const typeOptions = [
+    {value: null, label: 'Any'},
+    {value: 1, label: RequestTypes["1"]},
+    {value: 2, label: RequestTypes["2"]},
+    {value: 3, label: RequestTypes["3"]},
+    {value: 4, label: RequestTypes["4"]},
+    {value: 5, label: RequestTypes["5"]},
+    {value: 6, label: RequestTypes["6"]},
+    {value: 7, label: RequestTypes["7"]}
+]
 
 export class MyRequests extends Component {
     static displayName = MyRequests.name;
@@ -24,18 +48,21 @@ export class MyRequests extends Component {
         super(props);
 
         this.state = {
-            stateOptions: [
-                {value: null, label: 'Any'},
-            ],
-            typeOptions: [
-                {value: null, label: 'Any'},
-            ],
             selectedOptionDateFrom: new Date().setMonth(new Date().getMonth() - 6),
-            selectedOptionDateTo: new Date(),
+            selectedOptionDateTo: new Date().setMonth(new Date().getMonth() + 2),
             selectedOptionState: null,
             selectedOptionType: null,
             rows: [
-                {id: "", state: "loading...", type: 'loading...', dates: "loading...", comment: "loading...", details: "loading...", view: "loading...", visible: true},
+                {
+                    id: "",
+                    state: "loading...",
+                    type: 'loading...',
+                    dateFrom: "loading...",
+                    dateTo: "loading...",
+                    comment: "loading...",
+                    details: "loading...",
+                    visible: true
+                },
             ],
             daysUsed: {
                 "1": {"days": "Loading..."},
@@ -48,10 +75,10 @@ export class MyRequests extends Component {
             },
             loading: false,
             error: false,
+            chosenRequest: null,
         };
-        
+
         this._filter = this._filter.bind(this);
-        this._newRequest = this._newRequest.bind(this);
     }
 
     render() {
@@ -69,7 +96,6 @@ export class MyRequests extends Component {
                         <Col>
                             <Link to="/createRequest" style={{textDecoration: 'none'}}>
                                 <Button
-                                    onClick={this._newRequest}
                                     outline
                                     block
                                     color="success">
@@ -112,13 +138,13 @@ export class MyRequests extends Component {
                         <Col>
                             <center>
                                 <DatePicker
-                                    dateFormat="yyyy-MM-dd"
+                                    dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateFrom}
                                     onChange={this.handleChangeDateFrom}
                                 >
                                 </DatePicker>
                                 <DatePicker
-                                    dateFormat="yyyy-MM-dd"
+                                    dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateTo}
                                     onChange={this.handleChangeDateTo}
                                     className="mt-2"
@@ -130,12 +156,12 @@ export class MyRequests extends Component {
                             <Select
                                 value={this.state.selectedOptionState}
                                 onChange={this.handleChangeState}
-                                options={this.state.stateOptions}
+                                options={stateOptions}
                             />
                             <Select
                                 value={this.state.selectedOptionType}
                                 onChange={this.handleChangeType}
-                                options={this.state.typeOptions}
+                                options={typeOptions}
                                 className="mt-2"
                             />
                         </Col>
@@ -193,8 +219,8 @@ export class MyRequests extends Component {
     async componentDidMount(): Promise<void> {
         this.setState({
             loading: true,
-            selectedOptionState: this.state.stateOptions[0],
-            selectedOptionType: this.state.typeOptions[0],
+            selectedOptionState: stateOptions[0],
+            selectedOptionType: typeOptions[0],
         });
         await RequestSendingService.sendGetRequestAuthorized(URL.url + "Employee/GetDays")
             .then(async response => {
@@ -203,6 +229,42 @@ export class MyRequests extends Component {
                     console.log(data);
                     this.setState({
                         daysUsed: data,
+                        loading: false,
+                        error: false
+                    })
+                }
+            })
+            .catch(error => {
+                this.setState({
+                    loading: false,
+                    error: true
+                })
+                console.error(error);
+            })
+
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/GetRequests?page=1&pageSize=10000", {
+            "RequestTypeId": 0,
+            "StateDetailId": 0,
+            "Reason": ""
+        })
+            .then(async response => {
+                if (response.status === 200) {
+                    const data = await response.json().then(data => data);
+                    console.log(data);
+                    this.state.rows.pop();
+                    data.requests.forEach(request => {
+                        this.state.rows.push({
+                            id: request.id,
+                            state: StateDetailts[request.stateDetailId],
+                            type: RequestTypes[request.requestTypeId],
+                            dateFrom: request.dateTimeFrom.slice(0, 10),
+                            dateTo: request.dateTimeTo.slice(0, 10),
+                            comment: request.reason,
+                            details: "Check this in request's page",
+                            visible: true
+                        })
+                    })
+                    this.setState({
                         loading: false,
                         error: false
                     })
@@ -232,12 +294,34 @@ export class MyRequests extends Component {
     handleChangeType = selectedOptionType => {
         this.setState({selectedOptionType});
     };
-    
-    _newRequest() {
 
-    }
-    
     _filter() {
+        this.state.rows.forEach(row => {
+            let result = true;
+
+            if ((this.state.selectedOptionState.value !== null) && row.state !== StateDetailts[this.state.selectedOptionState.value]) {
+                result = result && false;
+            } else {
+                result = result && true;
+            }
+
+            if ((this.state.selectedOptionType.value !== null) && row.state !== RequestTypes[this.state.selectedOptionType.value]) {
+                result = result && false;
+            } else {
+                result = result && true;
+            }
+
+            // if (this.state.selectedOptionDateFrom >= Date.parse(row.dateFrom) && this.state.selectedOptionDateTo <= Date.parse(row.dateTo)) {
+            //     result = result && false;
+            // } else {
+            //     result = result && true;
+            // }
+
+            row.visible = result;
+        })
+
+        this.setState({})
+
         console.log(this.state.selectedOptionState)
         console.log(this.state.selectedOptionType)
         console.log(this.state.selectedOptionDateFrom)
