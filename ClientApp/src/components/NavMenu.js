@@ -36,6 +36,11 @@ export class NavMenu extends Component {
                     <NavLink tag={Link} className="text-dark" to="/">Home</NavLink>
                   </NavItem>
                 }
+                {AuthService.isLogged() && AuthService.getCurrentUserRole() === "Employee" &&
+                <NavItem>
+                  <NavLink tag={Link} className="text-dark" to="/createRequest">Create New</NavLink>
+                </NavItem>
+                }
                 <NavItem>
                   <NavLink tag={Link} className="text-dark" to="/auth">Me</NavLink>
                 </NavItem>
