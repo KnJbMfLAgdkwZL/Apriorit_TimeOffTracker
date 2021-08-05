@@ -93,12 +93,11 @@ namespace TimeOffTracker.Controllers
 
             var requestId = await requestCrud.CreateAsync(requestDto, token);
 
-            /*
-                Отсылаем уведомление на почту
-                бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
-            */
+            // Отсылаем уведомление на почту бухгалтерией, соответствующая информация высылается другим менеджерам по порядку, если надо.
 
-            // SendMaill
+            var requestRepository = new RequestRepository();
+            var request = await requestRepository.SelectFullAsync(requestId, token);
+            _mailNotification.SendRequest(request);
 
             return requestId;
         }
@@ -189,7 +188,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.New)
+            if (request.StateDetailId != (int)StateDetails.New)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -207,6 +206,8 @@ namespace TimeOffTracker.Controllers
             await requestCrud.UpdateAsync(requestDto, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestDto.Id, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestDto.Id);
         }
@@ -264,7 +265,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.InProgress)
+            if (request.StateDetailId != (int)StateDetails.InProgress)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -283,6 +284,8 @@ namespace TimeOffTracker.Controllers
             await requestCrud.AddUserSignatureAsync(requestDto.UserSignature, requestDto.Id, 0, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestDto.Id, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestDto.Id);
         }
@@ -339,7 +342,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.Approved)
+            if (request.StateDetailId != (int)StateDetails.Approved)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -360,6 +363,8 @@ namespace TimeOffTracker.Controllers
             var requestId = await requestCrud.CreateAsync(requestDto, token);
 
             // SendMaill
+            var requestFull = await requestRepository.SelectFullAsync(requestId, token);
+            _mailNotification.SendRequest(requestFull);
 
             return Ok(requestId);
         }
@@ -393,7 +398,7 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.New)
+            if (request.StateDetailId != (int)StateDetails.New)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -433,8 +438,8 @@ namespace TimeOffTracker.Controllers
             }
 
             var enumRepository = new EnumRepository();
-            if (request.StateDetailId != (int) StateDetails.InProgress &&
-                request.StateDetailId != (int) StateDetails.Approved)
+            if (request.StateDetailId != (int)StateDetails.InProgress &&
+                request.StateDetailId != (int)StateDetails.Approved)
             {
                 var state = enumRepository.GetById<StateDetails>(request.StateDetailId);
                 return BadRequest($"Request.State: {state.Type}");
@@ -446,6 +451,8 @@ namespace TimeOffTracker.Controllers
             //SendEmaill
             //8. Все люди уже утвердившие заявку получают соответствующее уведомление на почту,
             //как  и в случае отмены заявки в середины цепочки.
+            var requestFul = await requestRepository.SelectFullAsync(id, token);
+            _mailNotification.RejectedRequestAccountingAndMangers(requestFul);
 
             return Ok("Ok");
         }
@@ -589,9 +596,9 @@ namespace TimeOffTracker.Controllers
 
             var requestRepository = new RequestRepository();
 
-            var requests = await requestRepository.SelectAllAsync(filter, token);
+            var requests = await requestRepository.SelectAllFullAsync(filter, token);
 
-            var totalPages = (int) Math.Ceiling((double) requests.Count / pageSize);
+            var totalPages = (int)Math.Ceiling((double)requests.Count / pageSize);
             var requestsDto = requests.ToPagedList(page, pageSize).Select(Converter.EntityToDto);
             var result = new
             {

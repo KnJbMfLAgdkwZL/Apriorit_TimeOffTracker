@@ -16,10 +16,26 @@ namespace TimeOffTracker.Model.Repositories
             await using var context = new masterContext();
             return await context.Requests.Where(r =>
                 r.UserId == filter.UserId &&
-                (filter.RequestTypeId == 0 || r.RequestTypeId == (int) filter.RequestTypeId) &&
-                (filter.StateDetailId == 0 || r.StateDetailId == (int) filter.StateDetailId) &&
+                (filter.RequestTypeId == 0 || r.RequestTypeId == (int)filter.RequestTypeId) &&
+                (filter.StateDetailId == 0 || r.StateDetailId == (int)filter.StateDetailId) &&
                 EF.Functions.Like(r.Reason, $"%{filter.Reason}%")
             ).ToListAsync(token);
+        }
+
+        public async Task<List<Request>> SelectAllFullAsync(RequestDto filter, CancellationToken token)
+        {
+            await using var context = new masterContext();
+            return await context.Requests.Where(r =>
+                    r.UserId == filter.UserId &&
+                    (filter.RequestTypeId == 0 || r.RequestTypeId == (int)filter.RequestTypeId) &&
+                    (filter.StateDetailId == 0 || r.StateDetailId == (int)filter.StateDetailId) &&
+                    EF.Functions.Like(r.Reason, $"%{filter.Reason}%")
+                ).Include(r => r.UserSignatures
+                    .Where(us => us.Deleted == false)
+                )
+                .ThenInclude(us => us.User)
+                .Include(u => u.User)
+                .ToListAsync(token);
         }
 
         public async Task<int> InsertAsync(RequestDto requestDto, CancellationToken token)
@@ -54,7 +70,7 @@ namespace TimeOffTracker.Model.Repositories
                 .Where(r =>
                     r.Id == id &&
                     r.UserId == userId &&
-                    r.StateDetailId != (int) StateDetails.Deleted
+                    r.StateDetailId != (int)StateDetails.Deleted
                 )
                 .Include(r => r.UserSignatures
                     .Where(us => us.Deleted == false))
@@ -107,8 +123,8 @@ namespace TimeOffTracker.Model.Repositories
             return await context.Requests
                 .Where(r =>
                     r.UserId == request.UserId &&
-                    r.StateDetailId != (int) StateDetails.Deleted &&
-                    r.StateDetailId != (int) StateDetails.DeclinedByOwner &&
+                    r.StateDetailId != (int)StateDetails.Deleted &&
+                    r.StateDetailId != (int)StateDetails.DeclinedByOwner &&
                     r.DateTimeTo >= DateTime.Now &&
                     (
                         r.DateTimeFrom <= request.DateTimeFrom &&
@@ -125,13 +141,13 @@ namespace TimeOffTracker.Model.Repositories
             await using var context = new masterContext();
             var requests = await context.Requests.Where(r =>
                 r.Id == id &&
-                r.StateDetailId != (int) StateDetails.Deleted &&
-                r.StateDetailId != (int) StateDetails.DeclinedByOwner
+                r.StateDetailId != (int)StateDetails.Deleted &&
+                r.StateDetailId != (int)StateDetails.DeclinedByOwner
             ).ToListAsync(token);
 
             foreach (var r in requests)
             {
-                r.StateDetailId = (int) StateDetails.DeclinedByOwner;
+                r.StateDetailId = (int)StateDetails.DeclinedByOwner;
                 context.Requests.Update(r);
             }
 
@@ -146,7 +162,7 @@ namespace TimeOffTracker.Model.Repositories
             var requests = await context.Requests.Where(r =>
                 r.UserId == userId &&
                 r.RequestTypeId == requestTypesId &&
-                r.StateDetailId == (int) StateDetails.Approved &&
+                r.StateDetailId == (int)StateDetails.Approved &&
                 r.DateTimeFrom >= beginYear
             ).Select(r => r.DateTimeTo - r.DateTimeFrom).ToListAsync(token);
 
