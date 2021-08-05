@@ -9,6 +9,7 @@ import DataGrid from "react-data-grid";
 import {Link} from "react-router-dom";
 import {StateDetailts} from "../Enums/StateDetailts";
 import {RequestTypes} from "../Enums/RequestTypes";
+import {DatesComparer} from "../Helpers/DatesComparer";
 
 const columns = [
     {key: 'state', name: 'state'},
@@ -48,8 +49,8 @@ export class MyRequests extends Component {
         super(props);
 
         this.state = {
-            selectedOptionDateFrom: new Date().setMonth(new Date().getMonth() - 6),
-            selectedOptionDateTo: new Date().setMonth(new Date().getMonth() + 2),
+            selectedOptionDateFrom: new Date(),
+            selectedOptionDateTo: new Date(),
             selectedOptionState: null,
             selectedOptionType: null,
             rows: [
@@ -77,7 +78,7 @@ export class MyRequests extends Component {
             error: false,
             chosenRequest: null,
         };
-
+        
         this._filter = this._filter.bind(this);
     }
 
@@ -104,7 +105,7 @@ export class MyRequests extends Component {
                             </Link>
                         </Col>
                         <Col>
-                            <center><p><strong>Chosen request: </strong>{"some req"}</p></center>
+                            <center><p><strong>Chosen request (comment): </strong>{this.state.chosenRequest?.comment}</p></center>
                         </Col>
                         <Col>
                             <Button
@@ -260,7 +261,7 @@ export class MyRequests extends Component {
                             dateFrom: request.dateTimeFrom.slice(0, 10),
                             dateTo: request.dateTimeTo.slice(0, 10),
                             comment: request.reason,
-                            details: "Check this in request's page",
+                            details: this.buildDetails(request.userSignature),
                             visible: true
                         })
                     })
@@ -277,6 +278,10 @@ export class MyRequests extends Component {
                 })
                 console.error(error);
             })
+        
+        this.setState({
+            chosenRequest: this.state.rows.find((element) => element.visible)
+        })
     }
 
     handleChangeDateFrom = selectedOptionDateFrom => {
@@ -305,26 +310,39 @@ export class MyRequests extends Component {
                 result = result && true;
             }
 
-            if ((this.state.selectedOptionType.value !== null) && row.state !== RequestTypes[this.state.selectedOptionType.value]) {
+            if ((this.state.selectedOptionType.value !== null) && row.type !== RequestTypes[this.state.selectedOptionType.value]) {
                 result = result && false;
             } else {
                 result = result && true;
             }
 
-            // if (this.state.selectedOptionDateFrom >= Date.parse(row.dateFrom) && this.state.selectedOptionDateTo <= Date.parse(row.dateTo)) {
-            //     result = result && false;
-            // } else {
-            //     result = result && true;
-            // }
+            if (new Date(this.state.selectedOptionDateFrom) > new Date(row.dateFrom) || new Date(this.state.selectedOptionDateTo) < new Date(row.dateTo)) {
+                result = result && false;
+            } else {
+                result = result && true;
+            }
 
             row.visible = result;
         })
 
-        this.setState({})
+        this.setState({chosenRequest: this.state.rows.find((element) => element.visible)})
+    }
 
-        console.log(this.state.selectedOptionState)
-        console.log(this.state.selectedOptionType)
-        console.log(this.state.selectedOptionDateFrom)
-        console.log(this.state.selectedOptionDateTo)
+    buildDetails(userSignatures: Array) {
+        let result = "";
+
+        if (userSignatures.filter(us => us.approved === true && us.deleted === false).length > 0) {
+            result += "Approved: ";
+
+            userSignatures.forEach(us => {
+                result += us.user.firstName + " " + us.user.secondName + ", "
+            });
+        }
+        
+        if (result.length > 30) {
+            return "Its too long."
+        } else {
+            return result;
+        }
     }
 }
