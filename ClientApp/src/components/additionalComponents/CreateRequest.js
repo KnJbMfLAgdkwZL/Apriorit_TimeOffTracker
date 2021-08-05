@@ -133,12 +133,24 @@ export class CreateRequest extends Component {
             reason: this.state.textAreaComment,
             projectRoleComment: this.state.textFieldProjectRole,
             projectRoleTypeId: this.state.selectedProjectPart.value,
-            userSignatureDto: this.state.selectedManagers?.map((manager, index) => ({
+            userSignature: this.state.selectedManagers?.map((manager, index) => ({
                 nInQueue: index,
                 userId: manager.value
             }))
         })
             .then(async res => {
+                console.log(JSON.stringify({
+                    dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
+                    dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
+                    requestTypeId: this.state.selectedRequestType.value,
+                    reason: this.state.textAreaComment,
+                    projectRoleComment: this.state.textFieldProjectRole,
+                    projectRoleTypeId: this.state.selectedProjectPart.value,
+                    userSignature: this.state.selectedManagers?.map((manager, index) => ({
+                        nInQueue: index,
+                        userId: manager.value
+                    }))
+                }))
                 if (res.status === 200) {
                     this.setState({
                         loading: false,
@@ -325,7 +337,7 @@ export class CreateRequest extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                {!this.state.error && this.state.ok && <font color="green"> Request hase been sent! </font>}
+                                {!this.state.error && this.state.ok && <font color="green"> Request has been sent! </font>}
                                 {!this.state.error && !this.state.ok && "Create"}
                                 {this.state.error && !this.state.ok && <font color="red"> {this.state.errorValue} </font>}
                             </strong></p></center>
