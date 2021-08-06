@@ -89,7 +89,7 @@ namespace TimeOffTracker.Model
             {
                 Id = entity.Id,
                 Email = entity.Email,
-                Login = "", //entity.Login,
+                Login = entity.Login,
                 FirstName = entity.FirstName,
                 SecondName = entity.SecondName,
                 Password = "", //entity.Password,

@@ -191,7 +191,12 @@ export class Users extends Component {
             selectedRoleOption: roleOptions[0]
         });
 
-        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/GetUsers?page=1&pageSize=10000", {})
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/GetUsers?page=1&pageSize=10000", {
+            email: "",
+            login: "",
+            firstName: "",
+            secondName: ""
+        })
             .then(async response => {
                 if (response.status === 200) {
                     try {
