@@ -93,7 +93,7 @@ export class EditRole extends Component {
         this.setState({
             loading: true
         })
-        await RequestSendingService.sendPostRequestAuthorized(URL.url + "/Admin/ModifyUserRole", {
+        await RequestSendingService.sendPatchRequestAuthorized(URL.url + "Admin/ModifyUserRole", {
             id: parseInt(this.props.user.id),
             roleId: this.state.selectedRoleOption.value
         })
@@ -117,6 +117,6 @@ export class EditRole extends Component {
                     error: true,
                     loading: false
                 })
-            })
+            }).then(r => {window.location.reload()})
     }
 }
