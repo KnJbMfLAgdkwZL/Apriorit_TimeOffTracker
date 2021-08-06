@@ -22,8 +22,20 @@
             .catch(error => console.error(error));
     }
 
-    static async sendGetRequest(url) {
+    static async sendGetRequestUnauthorized(url) {
         return await fetch(url)
+            .catch(error => console.error(error));
+    }
+
+    static async sendGetRequestAuthorized(url) {
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            }
+        };
+        return await fetch(url, requestOptions)
             .catch(error => console.error(error));
     }
 }
