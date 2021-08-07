@@ -90,7 +90,7 @@ class EmployeeComponent extends Component {
                     </Route>
                     <Route exact path='/auth' component={Authorization}/>
                     <Route exact path='/createRequest' component={CreateRequest}/>
-                    <Route exact path='/request' component={Request}/>
+                    <Route path='/request' component={Request}/>
                     <Route>
                         <Redirect to="/"/>
                     </Route>
