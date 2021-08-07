@@ -9,7 +9,6 @@ import DataGrid from "react-data-grid";
 import {Link} from "react-router-dom";
 import {StateDetailts} from "../Enums/StateDetailts";
 import {RequestTypes} from "../Enums/RequestTypes";
-import {DatesComparer} from "../Helpers/DatesComparer";
 
 const columns = [
     {key: 'state', name: 'state'},
@@ -49,8 +48,8 @@ export class MyRequests extends Component {
         super(props);
 
         this.state = {
-            selectedOptionDateFrom: new Date(),
-            selectedOptionDateTo: new Date(),
+            selectedOptionDateFrom: new Date().setMonth(new Date().getMonth() - 2),
+            selectedOptionDateTo: new Date().setDate(new Date().getDate() + 10),
             selectedOptionState: null,
             selectedOptionType: null,
             rows: [
@@ -89,7 +88,7 @@ export class MyRequests extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                This year statistics
+                                New Or View
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -108,13 +107,14 @@ export class MyRequests extends Component {
                             <center><p><strong>Chosen request (comment): </strong>{this.state.chosenRequest?.comment}</p></center>
                         </Col>
                         <Col>
-                            <Button
-                                // onClick={this._newRequestChangeState}
-                                outline
-                                block
-                                color="info">
-                                View Chosen Request
-                            </Button>
+                            <Link to={"/request?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
+                                <Button
+                                    outline
+                                    block
+                                    color="info">
+                                    View Chosen Request
+                                </Button>
+                            </Link>
                         </Col>
                     </Row>
                 </Container>
