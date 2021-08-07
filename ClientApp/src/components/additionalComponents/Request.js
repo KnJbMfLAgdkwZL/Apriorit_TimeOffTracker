@@ -6,19 +6,27 @@ import {Button, Col, Container, Row} from "reactstrap";
 import Select from "react-select";
 import DatePicker from "react-datepicker";
 import {TextField} from "@material-ui/core";
-import {Link} from "react-router-dom";
+import {Link, Route, Switch} from "react-router-dom";
+import {Layout} from "../Layout";
+import {MyRequests} from "../MyRequests";
+import {AuthService} from "../../Services/AuthService";
+import {Redirect} from "react-router";
+import {Authorization} from "../Authorization";
+import {CreateRequest} from "./CreateRequest";
+import equal from 'fast-deep-equal';
+import {Markup} from 'interweave';
 
 const styles = {
     multiValue: (base, state) => {
-        return state.data.isFixed ? { ...base, backgroundColor: "gray" } : base;
+        return state.data.isFixed ? {...base, backgroundColor: "gray"} : base;
     },
     multiValueLabel: (base, state) => {
         return state.data.isFixed
-            ? { ...base, color: "white", paddingRight: 5 }
+            ? {...base, color: "white", paddingRight: 5}
             : base;
     },
     multiValueRemove: (base, state) => {
-        return state.data.isFixed ? { ...base, display: "none" } : base;
+        return state.data.isFixed ? {...base, display: "none"} : base;
     }
 };
 
@@ -69,11 +77,15 @@ export class Request extends Component {
             ok: false,
             edit: false,
             requestStateId: "",
+            accountingApprove: null,
+
+            renderedManagers: "",
         }
 
         this._handleTextFiledProjectRoleChange = this._handleTextFiledProjectRoleChange.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleChangeTextAreaComment = this.handleChangeTextAreaComment.bind(this);
+        this._renderManagerList = this._renderManagerList.bind(this);
     }
 
     async componentDidMount(): Promise<void> {
@@ -106,7 +118,7 @@ export class Request extends Component {
                 })
                 console.error(error);
             })
-        
+
         await RequestSendingService.sendGetRequestAuthorized(URL.url + "Employee/GetRequestDetails" + window.location.search)
             .then(async response => {
                 if (response.status === 200) {
@@ -127,8 +139,13 @@ export class Request extends Component {
                                 value: us.user.id, label: String(us.user.firstName + " " + us.user.secondName),
                                 isFixed: us.approved === true && us.deleted === false
                             })
-                        })
+                        }),
+                        accountingApprove: data.userSignature[0].approved,
+
+                        renderedManagers: this._renderManagerList(data.userSignature.slice(1).filter(us => us.deleted === false)),
                     })
+
+
                 }
             })
             .catch(error => {
@@ -337,9 +354,13 @@ export class Request extends Component {
                     <Row>
                         {this.state.managerApproval &&
                         <Row>
-                            <left><p><strong>
-                                2. Others
-                            </strong></p>
+                            <left><p>
+                                1. Accounting
+                                - <strong>{this.state.accountingApprove ? "approved" : "not approved"}</strong><br/>
+                                <Markup content={this.state.renderedManagers}/>
+                            </p><p>
+                                Click on select to see the approvers. Dark grey - already approved.
+                            </p>
                             </left>
                             <Select
                                 isMulti
@@ -350,6 +371,8 @@ export class Request extends Component {
                                 value={this.state.selectedManagers}
                                 onChange={this.handleChangeManagers}
                                 styles={styles}
+                                isDisabled={!this.state.edit}
+                                closeMenuOnSelect={false}
                             />
                         </Row>
                         }
@@ -379,59 +402,59 @@ export class Request extends Component {
                             </Link>
                         </Col>
                         {!this.state.edit &&
-                            <Col>
-                                <Button
-                                    onClick={() => this.setState({edit: !this.state.edit})}
-                                    block
-                                    outline
-                                    color="info">
-                                    Edit
-                                </Button>
-                            </Col>
+                        <Col>
+                            <Button
+                                onClick={() => this.setState({edit: !this.state.edit})}
+                                block
+                                outline
+                                color="info">
+                                Edit
+                            </Button>
+                        </Col>
                         }
                         {!this.state.edit &&
-                            <Col>
-                                <Button
-                                    // onClick={this.sendRequest}
-                                    block
-                                    outline
-                                    color="success">
-                                    Duplicate
-                                </Button>
-                            </Col>
+                        <Col>
+                            <Button
+                                // onClick={}
+                                block
+                                outline
+                                color="success">
+                                Duplicate
+                            </Button>
+                        </Col>
                         }
                         {!this.state.edit &&
-                            <Col>
-                                <Button
-                                    // onClick={this.sendRequest}
-                                    block
-                                    outline
-                                    color="danger">
-                                    Decline
-                                </Button>
-                            </Col>
+                        <Col>
+                            <Button
+                                // onClick={this.sendRequest}
+                                block
+                                outline
+                                color="danger">
+                                Decline
+                            </Button>
+                        </Col>
                         }
                         {this.state.edit &&
-                            <Col>
-                                <Button
-                                    // onClick={this.sendRequest}
-                                    block
-                                    outline
-                                    color="success">
-                                    Save
-                                </Button>
-                            </Col>
+                        <Col>
+                            <Button
+                                // onClick={this.sendRequest}
+                                block
+                                outline
+                                color="success">
+                                Save
+                            </Button>
+                        </Col>
                         }
                         {this.state.edit &&
-                            <Col>
-                                <Button
-                                    onClick={() => this.setState({edit: !this.state.edit})}
-                                    block
-                                    outline
-                                    color="danger">
-                                    Cancel
-                                </Button>
-                            </Col>
+                        <Col>
+                            <Button
+                                onClick={() => this.setState({edit: !this.state.edit})}
+                                block
+                                outline
+                                color="danger">
+                                Cancel
+                            </Button>
+                        </Col>
                         }
                     </Row>
                 </Container>
@@ -477,5 +500,14 @@ export class Request extends Component {
         this.setState({
             textFieldProjectRole: e.target.value
         });
+    }
+
+    _renderManagerList(managers) {
+        let result = "";
+        if (managers !== undefined) {
+            managers.forEach((m, index) => (result += (index + 2) + ". " + m.user.firstName + " " + m.user.secondName + 
+                " - <strong>" + (!m.approved && "not") + " approved</strong></br>"));
+        }
+        return result;
     }
 }
