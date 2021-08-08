@@ -6,15 +6,9 @@ import {Button, Col, Container, Row} from "reactstrap";
 import Select from "react-select";
 import DatePicker from "react-datepicker";
 import {TextField} from "@material-ui/core";
-import {Link, Route, Switch} from "react-router-dom";
-import {Layout} from "../Layout";
-import {MyRequests} from "../MyRequests";
-import {AuthService} from "../../Services/AuthService";
-import {Redirect} from "react-router";
-import {Authorization} from "../Authorization";
-import {CreateRequest} from "./CreateRequest";
-import equal from 'fast-deep-equal';
+import {Link} from "react-router-dom";
 import {Markup} from 'interweave';
+import {getSearchParams} from "../../Helpers/UrlParametersParser";
 
 const styles = {
     multiValue: (base, state) => {
@@ -80,9 +74,11 @@ export class Request extends Component {
             accountingApprove: null,
 
             renderedManagers: "",
+            stateDetailId: null
         }
 
         this._handleTextFiledProjectRoleChange = this._handleTextFiledProjectRoleChange.bind(this);
+        this.sendEditNewRequest = this.sendEditNewRequest.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleChangeTextAreaComment = this.handleChangeTextAreaComment.bind(this);
         this._renderManagerList = this._renderManagerList.bind(this);
@@ -134,18 +130,28 @@ export class Request extends Component {
                         textFieldProjectRole: data.projectRoleComment,
                         selectedProjectPart: projectPartOptions.find(option => option.value === data.projectRoleTypeId),
                         requestStateId: data.stateDetailId,
-                        selectedManagers: data.userSignature.slice(1).filter(us => us.deleted === false).forEach(us => {
-                            this.state.selectedManagers.push({
+                        accountingApprove: (data.userSignature.length > 0) && data.userSignature[0].approved,
+                        selectedManagers: selectedManagersListBuilder(data.userSignature),
+                        sick: requestTypeOptions.find(type => type.value === data.requestTypeId).sick,
+                        managerApproval: requestTypeOptions.find(type => type.value === data.requestTypeId).managerApproval,
+
+
+                        renderedManagers: this._renderManagerList(data.userSignature.slice(1).filter(us => us.deleted === false)),
+                        stateDetailId: data.stateDetailId
+                    })
+
+                    function selectedManagersListBuilder(userSignatures) {
+                        let result = [];
+
+                        userSignatures.slice(1).filter(us => us.deleted === false).forEach(us => {
+                            result.push({
                                 value: us.user.id, label: String(us.user.firstName + " " + us.user.secondName),
                                 isFixed: us.approved === true && us.deleted === false
                             })
-                        }),
-                        accountingApprove: data.userSignature[0].approved,
+                        })
 
-                        renderedManagers: this._renderManagerList(data.userSignature.slice(1).filter(us => us.deleted === false)),
-                    })
-
-
+                        return result;
+                    }
                 }
             })
             .catch(error => {
@@ -154,60 +160,6 @@ export class Request extends Component {
                     error: true
                 })
                 console.error(error);
-            })
-    }
-
-    async sendRequest() {
-        this.setState({
-            loading: true,
-        });
-        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/СreateRequest", {
-            dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
-            dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
-            requestTypeId: this.state.selectedRequestType.value,
-            reason: this.state.textAreaComment,
-            projectRoleComment: this.state.textFieldProjectRole,
-            projectRoleTypeId: this.state.selectedProjectPart.value,
-            userSignature: this.state.selectedManagers?.map((manager, index) => ({
-                nInQueue: index,
-                userId: manager.value
-            }))
-        })
-            .then(async res => {
-                console.log(JSON.stringify({
-                    dateTimeFrom: DateFormatter.dateToString(this.state.selectedOptionDateFrom),
-                    dateTimeTo: DateFormatter.dateToString(this.state.selectedOptionDateTo),
-                    requestTypeId: this.state.selectedRequestType.value,
-                    reason: this.state.textAreaComment,
-                    projectRoleComment: this.state.textFieldProjectRole,
-                    projectRoleTypeId: this.state.selectedProjectPart.value,
-                    userSignature: this.state.selectedManagers?.map((manager, index) => ({
-                        nInQueue: index,
-                        userId: manager.value
-                    }))
-                }))
-                if (res.status === 200) {
-                    this.setState({
-                        loading: false,
-                        error: false,
-                        ok: true
-                    })
-                } else {
-                    const d = await res.json().then(d => d);
-                    console.log(d);
-                    this.setState({
-                        loading: false,
-                        error: true,
-                        errorValue: (d.title === undefined) ? d : d.title,
-                    })
-                }
-            })
-            .catch(e => {
-                this.setState({
-                    loading: false,
-                    error: true,
-                })
-                console.error(e);
             })
     }
 
@@ -246,7 +198,7 @@ export class Request extends Component {
                                 onChange={this._handleRequestTypeChange}
                                 options={requestTypeOptions}
                                 error={this.state.error}
-                                isDisabled={!this.state.edit}
+                                isDisabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
                         <Col>
@@ -256,7 +208,7 @@ export class Request extends Component {
                                     dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateFrom}
                                     onChange={this.handleChangeDateFrom}
-                                    disabled={!this.state.edit}
+                                    disabled={!this.state.edit || this.state.stateDetailId !== 1 && this.state.stateDetailId !== 3}
                                 >
                                 </DatePicker>
                             </center>
@@ -268,7 +220,7 @@ export class Request extends Component {
                                     dateFormat="dd-MM-yyyy"
                                     selected={this.state.selectedOptionDateTo}
                                     onChange={this.handleChangeDateTo}
-                                    disabled={!this.state.edit}
+                                    disabled={!this.state.edit || this.state.stateDetailId !== 1 && this.state.stateDetailId !== 3}
                                 >
                                 </DatePicker>
                             </center>
@@ -293,7 +245,7 @@ export class Request extends Component {
                             <textarea
                                 placeholder={this.state.textAreaComment}
                                 onChange={this.handleChangeTextAreaComment}
-                                disabled={!this.state.edit}
+                                disabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
                         {this.state.sick &&
@@ -303,7 +255,7 @@ export class Request extends Component {
                                 onChange={this.handleChangeSickDayBusyness}
                                 options={sickDayBusynessOptions}
                                 error={this.state.error}
-                                isDisabled={!this.state.edit}
+                                isDisabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
                         }
@@ -329,7 +281,7 @@ export class Request extends Component {
                                 label="Project Role"
                                 autoFocus
                                 error={this.state.error}
-                                disabled={!this.state.edit}
+                                disabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
                         <Col>
@@ -338,7 +290,7 @@ export class Request extends Component {
                                 onChange={this.handleChangeProjectPart}
                                 options={projectPartOptions}
                                 error={this.state.error}
-                                isDisabled={!this.state.edit}
+                                isDisabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
                     </Row>
@@ -359,7 +311,7 @@ export class Request extends Component {
                                 - <strong>{this.state.accountingApprove ? "approved" : "not approved"}</strong><br/>
                                 <Markup content={this.state.renderedManagers}/>
                             </p><p>
-                                Click on select to see the approvers. Dark grey - already approved.
+                                Dark grey - already approved. Light grey - not approved yet.
                             </p>
                             </left>
                             <Select
@@ -371,7 +323,7 @@ export class Request extends Component {
                                 value={this.state.selectedManagers}
                                 onChange={this.handleChangeManagers}
                                 styles={styles}
-                                isDisabled={!this.state.edit}
+                                isDisabled={!this.state.edit || this.state.stateDetailId !== 1 && this.state.stateDetailId !== 2}
                                 closeMenuOnSelect={false}
                             />
                         </Row>
@@ -423,7 +375,7 @@ export class Request extends Component {
                             </Button>
                         </Col>
                         }
-                        {!this.state.edit &&
+                        {!this.state.edit || this.state.stateDetailId === 2 &&
                         <Col>
                             <Button
                                 // onClick={this.sendRequest}
@@ -437,7 +389,7 @@ export class Request extends Component {
                         {this.state.edit &&
                         <Col>
                             <Button
-                                // onClick={this.sendRequest}
+                                onClick={this.sendRequest}
                                 block
                                 outline
                                 color="success">
@@ -505,9 +457,88 @@ export class Request extends Component {
     _renderManagerList(managers) {
         let result = "";
         if (managers !== undefined) {
-            managers.forEach((m, index) => (result += (index + 2) + ". " + m.user.firstName + " " + m.user.secondName + 
-                " - <strong>" + (!m.approved && "not") + " approved</strong></br>"));
+            managers.forEach((m, index) => (result += (index + 2) + ". " + m.user.firstName + " " + m.user.secondName +
+                " - <strong>" + (!m.approved ? "not" : "") + " approved</strong></br>"));
         }
         return result;
+    }
+    
+    async sendRequest() {
+        switch (this.state.requestStateId) {
+            case 1:
+                console.log(this.state.requestStateId);
+                await this.sendEditNewRequest();
+                break;
+                
+            case 2:
+                console.log(this.state.requestStateId);
+                break;
+                
+            case 3:
+                console.log(this.state.requestStateId);
+                break;
+        }
+    }
+
+    async sendEditNewRequest() {
+        this.setState({
+            loading: true,
+        });
+        await RequestSendingService.sendPutRequestAuthorized(URL.url + "Employee/EditNewRequest", {
+            id: getSearchParams("id"),
+            dateTimeFrom: DateFormatter.dateToString(new Date(this.state.selectedOptionDateFrom)),
+            dateTimeTo: DateFormatter.dateToString(new Date(this.state.selectedOptionDateTo)),
+            requestTypeId: this.state.selectedRequestType.value,
+            reason: this.state.textAreaComment,
+            projectRoleComment: this.state.textFieldProjectRole,
+            projectRoleTypeId: this.state.selectedProjectPart.value,
+            userSignature: this.state.selectedManagers.map((manager, index) => ({
+                nInQueue: index,
+                userId: manager.value
+            }))
+        })
+            .then(async res => {
+                console.log(JSON.stringify({
+                    id: getSearchParams("id"),
+                    dateTimeFrom: DateFormatter.dateToString(new Date(this.state.selectedOptionDateFrom)),
+                    dateTimeTo: DateFormatter.dateToString(new Date(this.state.selectedOptionDateTo)),
+                    requestTypeId: this.state.selectedRequestType.value,
+                    reason: this.state.textAreaComment,
+                    projectRoleComment: this.state.textFieldProjectRole,
+                    projectRoleTypeId: this.state.selectedProjectPart.value,
+                    userSignature: this.state.selectedManagers?.map((manager, index) => ({
+                        nInQueue: index,
+                        userId: manager.value
+                    }))
+                }))
+                if (res.status === 200) {
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
+                } else if (res.status === 500) {
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: "Server error...",
+                    })
+                } else {
+                    const d = await res.json().then(d => d);
+                    console.log(d);
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: (d.title === undefined) ? d : d.title,
+                    })
+                }
+            })
+            .catch(e => {
+                this.setState({
+                    loading: false,
+                    error: true,
+                })
+                console.error(e);
+            })
     }
 }
