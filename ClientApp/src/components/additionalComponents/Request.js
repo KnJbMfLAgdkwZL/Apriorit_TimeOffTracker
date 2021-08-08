@@ -84,6 +84,7 @@ export class Request extends Component {
         this._renderManagerList = this._renderManagerList.bind(this);
         this.sendDeclineRequest = this.sendDeclineRequest.bind(this);
         this.declineNewRequest = this.declineNewRequest.bind(this);
+        this.declineApprovedRequest = this.declineApprovedRequest.bind(this);
     }
 
     async componentDidMount(): Promise<void> {
@@ -480,6 +481,7 @@ export class Request extends Component {
 
             case 3:
                 console.log(this.state.requestStateId);
+                await this.declineApprovedRequest();
                 break;
         }
     }
@@ -506,6 +508,43 @@ export class Request extends Component {
             loading: true,
         });
         await RequestSendingService.sendDeleteRequestAuthorized(URL.url + "Employee/DeleteNewRequest" + window.location.search)
+            .then(async res => {
+                if (res.status === 200) {
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
+                } else if (res.status === 500) {
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: "Server error...",
+                    })
+                } else {
+                    const d = await res.json().then(d => d);
+                    console.log(d);
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: (d.title === undefined) ? d : d.title,
+                    })
+                }
+            })
+            .catch(e => {
+                this.setState({
+                    loading: false,
+                    error: true,
+                })
+                console.error(e);
+            })
+    }
+
+    async declineApprovedRequest() {
+        this.setState({
+            loading: true,
+        });
+        await RequestSendingService.sendDeleteRequestAuthorized(URL.url + "Employee/DeleteInProgressOrApprovedRequest" + window.location.search)
             .then(async res => {
                 if (res.status === 200) {
                     this.setState({
