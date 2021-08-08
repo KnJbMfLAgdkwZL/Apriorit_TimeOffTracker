@@ -84,4 +84,25 @@
         return await fetch(url, requestOptions)
             .catch(error => console.error(error));
     }
+
+    static async sendDeleteRequestUnauthorized(url) {
+        const requestOptions = {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
+
+    static async sendDeleteRequestAuthorized(url) {
+        const requestOptions = {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
 }

@@ -82,6 +82,8 @@ export class Request extends Component {
         this.sendRequest = this.sendRequest.bind(this);
         this.handleChangeTextAreaComment = this.handleChangeTextAreaComment.bind(this);
         this._renderManagerList = this._renderManagerList.bind(this);
+        this.sendDeclineRequest = this.sendDeclineRequest.bind(this);
+        this.declineNewRequest = this.declineNewRequest.bind(this);
     }
 
     async componentDidMount(): Promise<void> {
@@ -304,15 +306,21 @@ export class Request extends Component {
                         </Col>
                     </Row>
                     <Row>
-                        {this.state.managerApproval &&
-                        <Row>
-                            <left><p>
+                        <left>
+                            <p>
                                 1. Accounting
                                 - <strong>{this.state.accountingApprove ? "approved" : "not approved"}</strong><br/>
-                                <Markup content={this.state.renderedManagers}/>
-                            </p><p>
-                                Dark grey - already approved. Light grey - not approved yet.
                             </p>
+                        </left>
+                    </Row>
+                    <Row>
+                        {this.state.managerApproval &&
+                        <Row>
+                            <left>
+                                <p><Markup content={this.state.renderedManagers}/></p>
+                                <p>
+                                    Dark grey - already approved. Light grey - not approved yet.
+                                </p>
                             </left>
                             <Select
                                 isMulti
@@ -375,10 +383,10 @@ export class Request extends Component {
                             </Button>
                         </Col>
                         }
-                        {!this.state.edit || this.state.stateDetailId === 2 &&
+                        {!this.state.edit && this.state.stateDetailId !== 2 &&
                         <Col>
                             <Button
-                                // onClick={this.sendRequest}
+                                onClick={this.sendDeclineRequest}
                                 block
                                 outline
                                 color="danger">
@@ -462,6 +470,19 @@ export class Request extends Component {
         }
         return result;
     }
+
+    async sendDeclineRequest() {
+        switch (this.state.requestStateId) {
+            case 1:
+                console.log(this.state.requestStateId);
+                await this.declineNewRequest();
+                break;
+
+            case 3:
+                console.log(this.state.requestStateId);
+                break;
+        }
+    }
     
     async sendRequest() {
         switch (this.state.requestStateId) {
@@ -478,6 +499,43 @@ export class Request extends Component {
                 console.log(this.state.requestStateId);
                 break;
         }
+    }
+    
+    async declineNewRequest() {
+        this.setState({
+            loading: true,
+        });
+        await RequestSendingService.sendDeleteRequestAuthorized(URL.url + "Employee/DeleteNewRequest" + window.location.search)
+            .then(async res => {
+                if (res.status === 200) {
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
+                } else if (res.status === 500) {
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: "Server error...",
+                    })
+                } else {
+                    const d = await res.json().then(d => d);
+                    console.log(d);
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: (d.title === undefined) ? d : d.title,
+                    })
+                }
+            })
+            .catch(e => {
+                this.setState({
+                    loading: false,
+                    error: true,
+                })
+                console.error(e);
+            })
     }
 
     async sendEditNewRequest() {
