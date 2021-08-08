@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -25,6 +26,8 @@ namespace TimeOffTracker
 
         public void ConfigureServices(IServiceCollection services)
         {
+            Trace.Listeners.Add(new TextWriterTraceListener("Errors.log"));
+
             services.AddControllers();
             services.AddControllersWithViews();
 
