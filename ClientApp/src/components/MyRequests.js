@@ -11,6 +11,7 @@ import {StateDetailts} from "../Enums/StateDetailts";
 import {RequestTypes} from "../Enums/RequestTypes";
 
 const columns = [
+    {key: 'id', name: 'id'},
     {key: 'state', name: 'state'},
     {key: 'type', name: 'type'},
     {key: 'dateFrom', name: 'dateFrom'},
@@ -52,9 +53,10 @@ export class MyRequests extends Component {
             selectedOptionDateTo: new Date().setDate(new Date().getDate() + 10),
             selectedOptionState: null,
             selectedOptionType: null,
+            selectedOptionId: null,
             rows: [
                 {
-                    id: "",
+                    id: "loading...",
                     state: "loading...",
                     type: 'loading...',
                     dateFrom: "loading...",
@@ -76,6 +78,7 @@ export class MyRequests extends Component {
             loading: false,
             error: false,
             chosenRequest: null,
+            idOptions: [{value: null, label: 'Any'}],
         };
         
         this._filter = this._filter.bind(this);
@@ -104,7 +107,7 @@ export class MyRequests extends Component {
                             </Link>
                         </Col>
                         <Col>
-                            <center><p><strong>Chosen request (comment): </strong>{this.state.chosenRequest?.comment}</p></center>
+                            <center><p><strong>Chosen request (by id): </strong>{this.state.chosenRequest?.id}</p></center>
                         </Col>
                         <Col>
                             <Link to={"/request?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
@@ -165,6 +168,12 @@ export class MyRequests extends Component {
                                 options={typeOptions}
                                 className="mt-2"
                             />
+                            <Select
+                                value={this.state.selectedOptionId}
+                                onChange={this.handleChangeId}
+                                options={this.state.idOptions}
+                                className="mt-2"
+                            />
                         </Col>
                         <Col>
                             <Button
@@ -222,6 +231,7 @@ export class MyRequests extends Component {
             loading: true,
             selectedOptionState: stateOptions[0],
             selectedOptionType: typeOptions[0],
+            selectedOptionId: this.state.idOptions[0],
         });
         await RequestSendingService.sendGetRequestAuthorized(URL.url + "Employee/GetDays")
             .then(async response => {
@@ -264,6 +274,9 @@ export class MyRequests extends Component {
                             details: this.buildDetails(request.userSignature),
                             visible: true
                         })
+                        this.state.idOptions.push({
+                            value: request.id, label: request.id,
+                        })
                     })
                     this.setState({
                         loading: false,
@@ -296,6 +309,10 @@ export class MyRequests extends Component {
         this.setState({selectedOptionState});
     };
 
+    handleChangeId = selectedOptionId => {
+        this.setState({selectedOptionId});
+    };
+
     handleChangeType = selectedOptionType => {
         this.setState({selectedOptionType});
     };
@@ -311,6 +328,12 @@ export class MyRequests extends Component {
             }
 
             if ((this.state.selectedOptionType.value !== null) && row.type !== RequestTypes[this.state.selectedOptionType.value]) {
+                result = result && false;
+            } else {
+                result = result && true;
+            }
+
+            if ((this.state.selectedOptionId.value !== null) && row.id !== this.state.selectedOptionId.value) {
                 result = result && false;
             } else {
                 result = result && true;
