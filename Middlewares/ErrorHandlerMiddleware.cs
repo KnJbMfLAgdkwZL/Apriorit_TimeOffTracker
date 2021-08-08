@@ -25,7 +25,7 @@ namespace TimeOffTracker.Middlewares
             catch (Exception ex)
             {
                 ShowError(ex);
-                await SendResult(context, ex, (int) HttpStatusCode.InternalServerError);
+                await SendResult(context, ex, (int)HttpStatusCode.InternalServerError);
             }
         }
 
@@ -53,6 +53,17 @@ namespace TimeOffTracker.Middlewares
             Console.WriteLine("File: {0}", sf?.GetFileName());
             Console.WriteLine("Line Number: {0}", sf?.GetFileLineNumber());
             Console.WriteLine();
+
+            //ErrorLog
+            var msg = "\n";
+            msg += $"Error: {type}\n";
+            msg += $"Message: {ex.Message}\n";
+            msg += $"File: {sf?.GetFileName()}\n";
+            msg += $"Line Number: {sf?.GetFileLineNumber()} \n\n";
+            msg += ex.ToString();
+            msg += "\n\n\n";
+
+            Trace.TraceError(msg);
         }
     }
 }
