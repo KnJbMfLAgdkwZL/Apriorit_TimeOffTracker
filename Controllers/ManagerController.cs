@@ -98,10 +98,11 @@ namespace TimeOffTracker.Controllers
                 await userSignatureRepository.SelectAllNotApprovedByIdAsync(userSignature.RequestId, token);
 
             var requestFull = await requestRepository.SelectFullAsync(request.Id, token);
+            
+            var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
 
             if (userSignatures.Count <= 0)
             {
-                var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
                 req.StateDetailId = (int)StateDetails.Approved;
                 await requestRepository.UpdateAsync(req, token);
 
@@ -111,6 +112,9 @@ namespace TimeOffTracker.Controllers
 
             if (userSignatures.Count > 0)
             {
+                req.StateDetailId = (int)StateDetails.InProgress;
+                await requestRepository.UpdateAsync(req, token);
+                
                 _mailNotification.SendRequest(requestFull);
             }
 
