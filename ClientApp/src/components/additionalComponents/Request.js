@@ -79,6 +79,8 @@ export class Request extends Component {
 
         this._handleTextFiledProjectRoleChange = this._handleTextFiledProjectRoleChange.bind(this);
         this.sendEditNewRequest = this.sendEditNewRequest.bind(this);
+        this.sendEditInProgressRequest = this.sendEditInProgressRequest.bind(this);
+        this.sendEditApprovedRequest = this.sendEditApprovedRequest.bind(this);
         this.sendRequest = this.sendRequest.bind(this);
         this.handleChangeTextAreaComment = this.handleChangeTextAreaComment.bind(this);
         this._renderManagerList = this._renderManagerList.bind(this);
@@ -232,7 +234,7 @@ export class Request extends Component {
                     <Row className="mt-3">
                         <Col>
                             <center><p>
-                                My Comment
+                                Reason
                             </p></center>
                         </Col>
                         {this.state.sick &&
@@ -362,7 +364,7 @@ export class Request extends Component {
                                 </Button>
                             </Link>
                         </Col>
-                        {!this.state.edit &&
+                        {!this.state.edit && (this.state.stateDetailId === 1 || this.state.stateDetailId === 2 || this.state.stateDetailId === 3) &&
                         <Col>
                             <Button
                                 onClick={() => this.setState({edit: !this.state.edit})}
@@ -373,18 +375,17 @@ export class Request extends Component {
                             </Button>
                         </Col>
                         }
-                        {!this.state.edit &&
-                        <Col>
-                            <Button
-                                // onClick={}
-                                block
-                                outline
-                                color="success">
-                                Duplicate
-                            </Button>
-                        </Col>
-                        }
-                        {!this.state.edit && this.state.stateDetailId !== 2 &&
+                        {/*{!this.state.edit &&*/}
+                        {/*<Col>*/}
+                        {/*    <Button*/}
+                        {/*        // onClick={}*/}
+                        {/*        block*/}
+                        {/*        outline*/}
+                        {/*        color="success">*/}
+                        {/*        Duplicate*/}
+                        {/*    </Button>*/}
+                        {/*</Col>*/}
+                        {!this.state.edit && (this.state.stateDetailId === 1 || this.state.stateDetailId === 3) &&
                         <Col>
                             <Button
                                 onClick={this.sendDeclineRequest}
@@ -395,7 +396,7 @@ export class Request extends Component {
                             </Button>
                         </Col>
                         }
-                        {this.state.edit &&
+                        {this.state.edit && (this.state.stateDetailId === 1 || this.state.stateDetailId === 2 || this.state.stateDetailId === 3) &&
                         <Col>
                             <Button
                                 onClick={this.sendRequest}
@@ -485,24 +486,26 @@ export class Request extends Component {
                 break;
         }
     }
-    
+
     async sendRequest() {
         switch (this.state.requestStateId) {
             case 1:
                 console.log(this.state.requestStateId);
                 await this.sendEditNewRequest();
                 break;
-                
+
             case 2:
                 console.log(this.state.requestStateId);
+                await this.sendEditInProgressRequest();
                 break;
-                
+
             case 3:
                 console.log(this.state.requestStateId);
+                await this.sendEditApprovedRequest();
                 break;
         }
     }
-    
+
     async declineNewRequest() {
         this.setState({
             loading: true,
@@ -604,6 +607,118 @@ export class Request extends Component {
                     projectRoleComment: this.state.textFieldProjectRole,
                     projectRoleTypeId: this.state.selectedProjectPart.value,
                     userSignature: this.state.selectedManagers?.map((manager, index) => ({
+                        nInQueue: index,
+                        userId: manager.value
+                    }))
+                }))
+                if (res.status === 200) {
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
+                } else if (res.status === 500) {
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: "Server error...",
+                    })
+                } else {
+                    const d = await res.json().then(d => d);
+                    console.log(d);
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: (d.title === undefined) ? d : d.title,
+                    })
+                }
+            })
+            .catch(e => {
+                this.setState({
+                    loading: false,
+                    error: true,
+                })
+                console.error(e);
+            })
+    }
+
+    async sendEditInProgressRequest() {
+        this.setState({
+            loading: true,
+        });
+        await RequestSendingService.sendPutRequestAuthorized(URL.url + "Employee/EditInProgressRequest", {
+            id: getSearchParams("id"),
+            userSignature: this.state.selectedManagers.map((manager, index) => ({
+                nInQueue: index,
+                userId: manager.value
+            }))
+        })
+            .then(async res => {
+                console.log(JSON.stringify({
+                    id: getSearchParams("id"),
+                    userSignature: this.state.selectedManagers.map((manager, index) => ({
+                        nInQueue: index,
+                        userId: manager.value
+                    }))
+                }))
+                if (res.status === 200) {
+                    this.setState({
+                        loading: false,
+                        error: false,
+                        ok: true
+                    })
+                } else if (res.status === 500) {
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: "Server error...",
+                    })
+                } else {
+                    const d = await res.json().then(d => d);
+                    console.log(d);
+                    this.setState({
+                        loading: false,
+                        error: true,
+                        errorValue: (d.title === undefined) ? d : d.title,
+                    })
+                }
+            })
+            .catch(e => {
+                this.setState({
+                    loading: false,
+                    error: true,
+                })
+                console.error(e);
+            })
+    }
+
+    async sendEditApprovedRequest() {
+        this.setState({
+            loading: true,
+        });
+        await RequestSendingService.sendPutRequestAuthorized(URL.url + "Employee/EditApprovedRequest", {
+            id: getSearchParams("id"),
+            dateTimeFrom: DateFormatter.dateToString(new Date(this.state.selectedOptionDateFrom)),
+            dateTimeTo: DateFormatter.dateToString(new Date(this.state.selectedOptionDateTo)),
+            requestTypeId: this.state.selectedRequestType.value,
+            reason: this.state.textAreaComment,
+            projectRoleComment: this.state.textFieldProjectRole,
+            projectRoleTypeId: this.state.selectedProjectPart.value,
+            userSignature: this.state.selectedManagers.map((manager, index) => ({
+                nInQueue: index,
+                userId: manager.value
+            }))
+        })
+            .then(async res => {
+                console.log(JSON.stringify({
+                    id: getSearchParams("id"),
+                    dateTimeFrom: DateFormatter.dateToString(new Date(this.state.selectedOptionDateFrom)),
+                    dateTimeTo: DateFormatter.dateToString(new Date(this.state.selectedOptionDateTo)),
+                    requestTypeId: this.state.selectedRequestType.value,
+                    reason: this.state.textAreaComment,
+                    projectRoleComment: this.state.textFieldProjectRole,
+                    projectRoleTypeId: this.state.selectedProjectPart.value,
+                    userSignature: this.state.selectedManagers.map((manager, index) => ({
                         nInQueue: index,
                         userId: manager.value
                     }))

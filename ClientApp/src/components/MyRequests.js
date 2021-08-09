@@ -11,13 +11,13 @@ import {StateDetailts} from "../Enums/StateDetailts";
 import {RequestTypes} from "../Enums/RequestTypes";
 
 const columns = [
-    {key: 'id', name: 'id'},
-    {key: 'state', name: 'state'},
-    {key: 'type', name: 'type'},
-    {key: 'dateFrom', name: 'dateFrom'},
-    {key: 'dateTo', name: 'dateTo'},
-    {key: 'comment', name: 'my comment'},
-    {key: 'details', name: 'state details'},
+    {key: 'id', name: 'id', width: '5%'},
+    {key: 'state', name: 'state', width: '9%'},
+    {key: 'type', name: 'type', width: '15%'},
+    {key: 'dateFrom', name: 'dateFrom', width: '10%'},
+    {key: 'dateTo', name: 'dateTo', width: '10%'},
+    {key: 'comment', name: 'my comment', width: '18%'},
+    {key: 'details', name: 'state details', width: '30%'},
 ];
 
 const stateOptions = [
@@ -50,7 +50,7 @@ export class MyRequests extends Component {
 
         this.state = {
             selectedOptionDateFrom: new Date().setMonth(new Date().getMonth() - 2),
-            selectedOptionDateTo: new Date().setDate(new Date().getDate() + 10),
+            selectedOptionDateTo: new Date().setMonth(new Date().getMonth() + 2),
             selectedOptionState: null,
             selectedOptionType: null,
             selectedOptionId: null,
@@ -134,7 +134,7 @@ export class MyRequests extends Component {
                             <center><p>Dates From / To</p></center>
                         </Col>
                         <Col>
-                            <center><p>State / Type</p></center>
+                            <center><p>State / Type / Id</p></center>
                         </Col>
                         <Col/>
                     </Row>
@@ -357,12 +357,12 @@ export class MyRequests extends Component {
         if (userSignatures.filter(us => us.approved === true && us.deleted === false).length > 0) {
             result += "Approved: ";
 
-            userSignatures.forEach(us => {
-                result += us.user.firstName + " " + us.user.secondName + ", "
+            userSignatures.filter(us => us.approved === true && us.deleted === false).forEach(us => {
+                result += us.user.secondName + " " + us.user.firstName[0] + ", "
             });
         }
         
-        if (result.length > 30) {
+        if (result.length > 50) {
             return "Its too long."
         } else {
             return result;
