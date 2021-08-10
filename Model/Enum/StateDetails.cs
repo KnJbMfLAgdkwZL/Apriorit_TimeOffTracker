@@ -38,6 +38,3 @@ namespace TimeOffTracker.Model.Enum
         ModifiedByOwner = 7
     }
 }
-
-//7. Если пользователь нажимает Да, заявка переходит в состояние Отменена (Rejected). 
-//В причине отмены заявки:”Declined by the owner” (“Отменена сотрудником”) 

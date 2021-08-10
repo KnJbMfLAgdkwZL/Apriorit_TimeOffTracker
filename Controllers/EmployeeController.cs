@@ -57,7 +57,7 @@ namespace TimeOffTracker.Controllers
         ///     "reason": "string",
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
-        ///  *  "userSignatureDto": [
+        ///  *  "userSignature": [
         ///         {
         ///             "nInQueue": 0,
         ///             "userId": 4
@@ -158,7 +158,7 @@ namespace TimeOffTracker.Controllers
         ///     "reason": "string",
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
-        ///  *  "userSignatureDto": [
+        ///  *  "userSignature": [
         ///         {
         ///             "nInQueue": 0,
         ///             "userId": 4
@@ -224,7 +224,7 @@ namespace TimeOffTracker.Controllers
         /// Body
         /// {
         ///     "id": "25",
-        ///     "userSignatureDto": [
+        ///     "userSignature": [
         ///         {
         ///             "nInQueue": 0,
         ///             "userId": 4
@@ -283,9 +283,27 @@ namespace TimeOffTracker.Controllers
             await userSignatureRepository.DeleteAllNotApprovedAsync(requestDto.Id, token);
             await requestCrud.AddUserSignatureAsync(requestDto.UserSignature, requestDto.Id, 0, token);
 
-            // SendMaill
-            var requestFull = await requestRepository.SelectFullAsync(requestDto.Id, token);
-            _mailNotification.SendRequest(requestFull);
+
+            var userSignatures = await userSignatureRepository.SelectAllNotApprovedByIdAsync(requestDto.Id, token);
+            var requestFull = await requestRepository.SelectFullAsync(request.Id, token);
+            var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
+
+            if (userSignatures.Count <= 0)
+            {
+                req.StateDetailId = (int)StateDetails.Approved;
+                await requestRepository.UpdateAsync(req, token);
+
+                _mailNotification.ApprovedRequestAccounting(requestFull);
+                _mailNotification.ApprovedRequestEmployee(requestFull);
+            }
+
+            if (userSignatures.Count > 0)
+            {
+                req.StateDetailId = (int)StateDetails.InProgress;
+                await requestRepository.UpdateAsync(req, token);
+
+                _mailNotification.SendRequest(requestFull);
+            }
 
             return Ok(requestDto.Id);
         }
@@ -311,7 +329,7 @@ namespace TimeOffTracker.Controllers
         ///     "reason": "string",
         ///  *  "projectRoleComment": "Варил кофе",
         ///  *  "projectRoleTypeId": 1, 
-        ///  *  "userSignatureDto": [
+        ///  *  "userSignature": [
         ///         {
         ///             "nInQueue": 0,
         ///             "userId": 4
