@@ -18,11 +18,6 @@ const requestTypeOptions = [
     {value: 7, label: 'Sick without docs', sick: true, managerApproval: false}
 ];
 
-const sickDayBusynessOptions = [
-    {value: 'Full day', label: 'Full day'},
-    {value: 'Part of the day', label: 'Part of the day'},
-]
-
 const projectPartOptions = [
     {value: 1, label: 'No role'},
     {value: 2, label: 'Member'},
@@ -41,7 +36,6 @@ export class CreateRequest extends Component {
             request: null,
             sick: false,
             managerApproval: true,
-            sickDayBusyness: "",
             selectedProjectPart: projectPartOptions[0],
             textFieldProjectRole: "",
             textAreaComment: "",
@@ -218,7 +212,7 @@ export class CreateRequest extends Component {
                             <center>
                                 <DatePicker
                                     showTimeSelect
-                                    dateFormat="dd-MM-yyyy"
+                                    dateFormat="dd-MM-yyyy | HH:mm"
                                     selected={this.state.selectedOptionDateFrom}
                                     onChange={this.handleChangeDateFrom}
                                 >
@@ -229,7 +223,7 @@ export class CreateRequest extends Component {
                             <center>
                                 <DatePicker
                                     showTimeSelect
-                                    dateFormat="dd-MM-yyyy"
+                                    dateFormat="dd-MM-yyyy | HH:mm"
                                     selected={this.state.selectedOptionDateTo}
                                     onChange={this.handleChangeDateTo}
                                 >
@@ -243,13 +237,6 @@ export class CreateRequest extends Component {
                                 My Comment
                             </p></center>
                         </Col>
-                        {this.state.sick &&
-                            <Col>
-                                <center><p>
-                                    Use
-                                </p></center>
-                            </Col>
-                        }
                     </Row>
                     <Row className="mt-2">
                         <Col>
@@ -257,16 +244,6 @@ export class CreateRequest extends Component {
                                 onChange={this.handleChangeTextAreaComment}
                             />
                         </Col>
-                        {this.state.sick &&
-                        <Col>
-                            <Select
-                                value={this.state.sickDayBusyness}
-                                onChange={this.handleChangeSickDayBusyness}
-                                options={sickDayBusynessOptions}
-                                error={this.state.error}
-                            />
-                        </Col>
-                        }
                     </Row>
                     <Row className="mt-3">
                         <Col>
@@ -288,7 +265,6 @@ export class CreateRequest extends Component {
                                 required
                                 label="Project Role"
                                 autoFocus
-                                error={this.state.error}
                             />
                         </Col>
                         <Col>
@@ -375,10 +351,6 @@ export class CreateRequest extends Component {
             sick: selectedRequestType.sick,
             managerApproval: selectedRequestType.managerApproval
         })
-    };
-
-    handleChangeSickDayBusyness = sickDayBusyness => {
-        this.setState({sickDayBusyness});
     };
 
     handleChangeDateFrom = selectedOptionDateFrom => {
