@@ -42,8 +42,8 @@ const typeOptions = [
     {value: 7, label: RequestTypes["7"]}
 ]
 
-export class MyRequests extends Component {
-    static displayName = MyRequests.name;
+export class OthersRequests extends Component {
+    static displayName = OthersRequests.name;
 
     constructor(props) {
         super(props);
@@ -66,15 +66,6 @@ export class MyRequests extends Component {
                     visible: true
                 },
             ],
-            daysUsed: {
-                "1": {"days": "Loading..."},
-                "2": {"days": "Loading..."},
-                "3": {"days": "Loading..."},
-                "4": {"days": "Loading..."},
-                "5": {"days": "Loading..."},
-                "6": {"days": "Loading..."},
-                "7": {"days": "Loading..."},
-            },
             loading: false,
             error: false,
             chosenRequest: null,
@@ -97,12 +88,12 @@ export class MyRequests extends Component {
                     </Row>
                     <Row>
                         <Col>
-                            <Link to="/createRequest" style={{textDecoration: 'none'}}>
+                            <Link to={"/approveRequest?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
                                 <Button
                                     outline
                                     block
                                     color="success">
-                                    New Request
+                                    To Approve Page
                                 </Button>
                             </Link>
                         </Col>
@@ -110,12 +101,12 @@ export class MyRequests extends Component {
                             <center><p><strong>Chosen request (id): </strong>{this.state.chosenRequest?.id}</p></center>
                         </Col>
                         <Col>
-                            <Link to={"/request?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
-                                <Button
+                            <Link to={"/rejectRequest?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
+                                <Button className="mt-1"
                                     outline
                                     block
-                                    color="info">
-                                    View Chosen Request
+                                    color="danger">
+                                    To Reject Page
                                 </Button>
                             </Link>
                         </Col>
@@ -125,7 +116,7 @@ export class MyRequests extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                My Requests
+                                Others' Requests Which You Can Approve Or Reject
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -196,32 +187,6 @@ export class MyRequests extends Component {
                         </Col>
                     </Row>
                 </Container>
-                <Container className="mt-3">
-                    <Row>
-                        <Col>
-                            <center><p><strong>
-                                This year statistics
-                            </strong></p></center>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <p>
-                                <strong>Paid holiday: {this.state.daysUsed["1"].days}</strong> days used<br/>
-                                <strong>Admin (unpaid) planned: {this.state.daysUsed["2"].days}</strong> days used<br/>
-                                <strong>Admin (unpaid) force majeure: {this.state.daysUsed["3"].days}</strong> days used<br/>
-                                <strong>Study: {this.state.daysUsed["4"].days}</strong> days used
-                            </p>
-                        </Col>
-                        <Col>
-                            <p>
-                                <strong>Social: {this.state.daysUsed["5"].days}</strong> days used<br/>
-                                <strong>Sick with docs: {this.state.daysUsed["6"].days}</strong> days used<br/>
-                                <strong>Sick without docs: {this.state.daysUsed["7"].days}</strong> days used
-                            </p>
-                        </Col>
-                    </Row>
-                </Container>
             </div>
         );
     }
@@ -233,27 +198,8 @@ export class MyRequests extends Component {
             selectedOptionType: typeOptions[0],
             selectedOptionId: this.state.idOptions[0],
         });
-        await RequestSendingService.sendGetRequestAuthorized(URL.url + "Employee/GetDays")
-            .then(async response => {
-                if (response.status === 200) {
-                    const data = await response.json().then(data => data);
-                    console.log(data);
-                    this.setState({
-                        daysUsed: data,
-                        loading: false,
-                        error: false
-                    })
-                }
-            })
-            .catch(error => {
-                this.setState({
-                    loading: false,
-                    error: true
-                })
-                console.error(error);
-            })
 
-        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Employee/GetRequests?page=1&pageSize=10000", {
+        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Manager/GetRequests?page=1&pageSize=10000", {
             "RequestTypeId": 0,
             "StateDetailId": 0,
             "Reason": ""
@@ -263,7 +209,10 @@ export class MyRequests extends Component {
                     const data = await response.json().then(data => data);
                     console.log(data);
                     this.state.rows.pop();
-                    data.requests.forEach(request => {
+                    data.requests.filter(request => {
+                        return request.userSignature[0].nInQueue === 0 && request.stateDetailId === 2 &&
+                            request.userSignature[0].approved === false && request.userSignature[0].deleted === false
+                    }).forEach(request => {
                         this.state.rows.push({
                             id: request.id,
                             state: StateDetailts[request.stateDetailId],
@@ -271,7 +220,7 @@ export class MyRequests extends Component {
                             dateFrom: request.dateTimeFrom.slice(0, 10),
                             dateTo: request.dateTimeTo.slice(0, 10),
                             comment: request.reason,
-                            details: this.buildDetails(request.userSignature),
+                            details: (request.userSignature.approved) ? "Approved" : "Not approved yet",
                             visible: true
                         })
                         this.state.idOptions.push({
@@ -291,7 +240,7 @@ export class MyRequests extends Component {
                 })
                 console.error(error);
             })
-        
+
         this.setState({
             chosenRequest: this.state.rows.find((element) => element.visible)
         })
@@ -349,23 +298,5 @@ export class MyRequests extends Component {
         })
 
         this.setState({chosenRequest: this.state.rows.find((element) => element.visible)})
-    }
-
-    buildDetails(userSignatures: Array) {
-        let result = "";
-
-        if (userSignatures.filter(us => us.approved === true && us.deleted === false).length > 0) {
-            result += "Approved: ";
-
-            userSignatures.filter(us => us.approved === true && us.deleted === false).forEach(us => {
-                result += us.user.secondName + " " + us.user.firstName[0] + ", "
-            });
-        }
-        
-        if (result.length > 50) {
-            return "Its too long."
-        } else {
-            return result;
-        }
     }
 }

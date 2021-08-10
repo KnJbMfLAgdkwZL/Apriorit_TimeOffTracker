@@ -360,7 +360,7 @@ export class Request extends Component {
                                     outline
                                     block
                                     color="secondary">
-                                    Back
+                                    To My Requests Page
                                 </Button>
                             </Link>
                         </Col>

@@ -31,14 +31,24 @@ export class NavMenu extends Component {
             <NavbarToggler onClick={this.toggleNavbar} className="mr-2" />
             <Collapse className="d-sm-inline-flex flex-sm-row-reverse" isOpen={!this.state.collapsed} navbar>
               <ul className="navbar-nav flex-grow">
-                {AuthService.isLogged() &&
+                {AuthService.isLogged() && AuthService.getCurrentUserRole() === "Admin" &&
                   <NavItem>
-                    <NavLink tag={Link} className="text-dark" to="/">Home</NavLink>
+                    <NavLink tag={Link} className="text-dark" to="/">Users</NavLink>
                   </NavItem>
                 }
-                {AuthService.isLogged() && AuthService.getCurrentUserRole() === "Employee" &&
+                {AuthService.isLogged() && (AuthService.getCurrentUserRole() === "Employee" || AuthService.getCurrentUserRole() === "Manager") &&
+                <NavItem>
+                  <NavLink tag={Link} className="text-dark" to="/">My Requests</NavLink>
+                </NavItem>
+                }
+                {AuthService.isLogged() && (AuthService.getCurrentUserRole() === "Employee" || AuthService.getCurrentUserRole() === "Manager") &&
                 <NavItem>
                   <NavLink tag={Link} className="text-dark" to="/createRequest">Create New</NavLink>
+                </NavItem>
+                }
+                {AuthService.isLogged() && (AuthService.getCurrentUserRole() === "Accounting" || AuthService.getCurrentUserRole() === "Manager") &&
+                <NavItem>
+                  <NavLink tag={Link} className="text-dark" to="/othersRequests">Others' Requests</NavLink>
                 </NavItem>
                 }
                 <NavItem>
