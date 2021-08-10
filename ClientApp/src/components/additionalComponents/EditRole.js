@@ -47,9 +47,9 @@ export class EditRole extends Component {
                 <Row>
                     <Col>
                         <strong>name:</strong> {this.props.user.name}<br/>
-                        <strong>email:</strong>: {this.props.user.email}<br/>
-                        <strong>login:</strong>: {this.props.user.login}<br/>
-                        <strong>role:</strong>: {this.props.user.role}
+                        <strong>email:</strong> {this.props.user.email}<br/>
+                        <strong>login:</strong> {this.props.user.login}<br/>
+                        <strong>role:</strong> {this.props.user.role}
                     </Col>
                     <Col>
                         <center>

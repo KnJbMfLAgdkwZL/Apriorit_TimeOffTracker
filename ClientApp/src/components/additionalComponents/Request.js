@@ -34,11 +34,6 @@ const requestTypeOptions = [
     {value: 7, label: 'Sick without docs', sick: true, managerApproval: false}
 ];
 
-const sickDayBusynessOptions = [
-    {value: 'Full day', label: 'Full day'},
-    {value: 'Part of the day', label: 'Part of the day'},
-]
-
 const projectPartOptions = [
     {value: 1, label: 'No role'},
     {value: 2, label: 'Member'},
@@ -57,7 +52,6 @@ export class Request extends Component {
             request: null,
             sick: false,
             managerApproval: true,
-            sickDayBusyness: "",
             selectedProjectPart: null,
             textFieldProjectRole: "",
             textAreaComment: null,
@@ -210,7 +204,7 @@ export class Request extends Component {
                             <center>
                                 <DatePicker
                                     showTimeSelect
-                                    dateFormat="dd-MM-yyyy"
+                                    dateFormat="dd-MM-yyyy | HH:mm"
                                     selected={this.state.selectedOptionDateFrom}
                                     onChange={this.handleChangeDateFrom}
                                     disabled={!this.state.edit || this.state.stateDetailId !== 1 && this.state.stateDetailId !== 3}
@@ -222,7 +216,7 @@ export class Request extends Component {
                             <center>
                                 <DatePicker
                                     showTimeSelect
-                                    dateFormat="dd-MM-yyyy"
+                                    dateFormat="dd-MM-yyyy | HH:mm"
                                     selected={this.state.selectedOptionDateTo}
                                     onChange={this.handleChangeDateTo}
                                     disabled={!this.state.edit || this.state.stateDetailId !== 1 && this.state.stateDetailId !== 3}
@@ -237,13 +231,6 @@ export class Request extends Component {
                                 Reason
                             </p></center>
                         </Col>
-                        {this.state.sick &&
-                        <Col>
-                            <center><p>
-                                Use
-                            </p></center>
-                        </Col>
-                        }
                     </Row>
                     <Row className="mt-2">
                         <Col>
@@ -253,17 +240,6 @@ export class Request extends Component {
                                 disabled={!this.state.edit || this.state.stateDetailId !== 1}
                             />
                         </Col>
-                        {this.state.sick &&
-                        <Col>
-                            <Select
-                                value={this.state.sickDayBusyness}
-                                onChange={this.handleChangeSickDayBusyness}
-                                options={sickDayBusynessOptions}
-                                error={this.state.error}
-                                isDisabled={!this.state.edit || this.state.stateDetailId !== 1}
-                            />
-                        </Col>
-                        }
                     </Row>
                     <Row className="mt-3">
                         <Col>
@@ -430,10 +406,6 @@ export class Request extends Component {
             sick: selectedRequestType.sick,
             managerApproval: selectedRequestType.managerApproval
         })
-    };
-
-    handleChangeSickDayBusyness = sickDayBusyness => {
-        this.setState({sickDayBusyness});
     };
 
     handleChangeDateFrom = selectedOptionDateFrom => {

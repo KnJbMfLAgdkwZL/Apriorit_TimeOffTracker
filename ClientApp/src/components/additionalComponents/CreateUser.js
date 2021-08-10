@@ -24,6 +24,7 @@ export class CreateUser extends Component {
             textFieldFirstNameValue: "",
             textFieldSecondNameValue: "",
             selectedRoleOption: roleOptions[1],
+            errorValue: "",
             add: false,
             error: false,
             loading: false
@@ -35,6 +36,8 @@ export class CreateUser extends Component {
         this._handleTextFiledFirstNameChange = this._handleTextFiledFirstNameChange.bind(this);
         this._handleTextFiledSecondNameChange = this._handleTextFiledSecondNameChange.bind(this);
         this._createUser = this._createUser.bind(this);
+        this.validateEmail = this.validateEmail.bind(this);
+        this.validate = this.validate.bind(this);
     }
 
     render() {
@@ -46,7 +49,7 @@ export class CreateUser extends Component {
                             <center><p><strong>
                                 {!this.state.add && !this.state.error && "User creation page"}
                                 {this.state.add && <font color="green"> User was successfully created!</font>}
-                                {this.state.error && <font color="red"> Something went wrong!</font>}
+                                {this.state.error && <font color="red"> {this.state.errorValue}</font>}
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -178,37 +181,55 @@ export class CreateUser extends Component {
         this.setState({
             loading: true,
         })
-        await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/CreateUser", {
-            "email": this.state.textFieldEmailValue,
-            "login": this.state.textFieldLoginValue,
-            "firstName": this.state.textFieldFirstNameValue,
-            "secondName": this.state.textFieldSecondNameValue,
-            "password": this.state.textFieldPasswordValue,
-            "roleId": parseInt(this.state.selectedRoleOption.value)
-        })
-            .then(response => {
-                if (response.status === 200) {
-                    this.setState({
-                        add: true,
-                        error: false,
-                        loading: false
-                    })
-                    this._cleanSendBodyStates();
-                } else {
-                    this.setState({
-                        add: false,
-                        error: true,
-                        loading: false
-                    })
-                }
+
+        if (!this.validate()) {
+            this.setState({
+                error: true,
+                errorValue: "Some fields are empty or email is not valid",
+                loading: false,
             })
-            .catch(error => {
-                console.error(error);
-                this.setState({
-                    error: true,
-                    loading: false,
+        }
+        else {
+            await RequestSendingService.sendPostRequestAuthorized(URL.url + "Admin/CreateUser", {
+                "email": this.state.textFieldEmailValue,
+                "login": this.state.textFieldLoginValue,
+                "firstName": this.state.textFieldFirstNameValue,
+                "secondName": this.state.textFieldSecondNameValue,
+                "password": this.state.textFieldPasswordValue,
+                "roleId": parseInt(this.state.selectedRoleOption.value)
+            })
+                .then(async response => {
+                    if (response.status === 200) {
+                        this.setState({
+                            add: true,
+                            error: false,
+                            loading: false
+                        })
+                        this._cleanSendBodyStates();
+                    } else if (response.status === 500) {
+                        this.setState({
+                            loading: false,
+                            error: true,
+                            errorValue: "Server error...",
+                        })
+                    } else {
+                        const d = await response.json().then(d => d);
+                        console.log(d);
+                        this.setState({
+                            loading: false,
+                            error: true,
+                            errorValue: (d.title === undefined) ? d : d.title,
+                        })
+                    }
                 })
-            })
+                .catch(error => {
+                    console.error(error);
+                    this.setState({
+                        error: true,
+                        loading: false,
+                    })
+                })
+        }
     }
 
     _handleTextFiledEmailChange(e) {
@@ -254,5 +275,18 @@ export class CreateUser extends Component {
             textFieldSecondNameValue: "",
             selectedRoleOption: roleOptions[1],
         });
+    }
+
+    validateEmail(email) {
+        const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
+    validate() {
+        if (this.state.textFieldFirstNameValue.length <= 0) return false;
+        if (this.state.textFieldSecondNameValue.length <= 0) return false;
+        if (this.state.textFieldLoginValue.length <= 0) return false;
+        if (this.state.textFieldPasswordValue.length <= 0) return false;
+        return this.validateEmail(this.state.textFieldEmailValue);
     }
 }
