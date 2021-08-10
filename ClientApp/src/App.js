@@ -43,6 +43,11 @@ export default class App extends Component {
                     <ManagerComponent/>
                 );
             }
+            case "Accounting": {
+                return (
+                    <AccountingComponent/>
+                );
+            }
             default: {
                 return (
                     <Layout>
@@ -125,6 +130,33 @@ class ManagerComponent extends Component {
                     <Route exact path='/auth' component={Authorization}/>
                     <Route exact path='/createRequest' component={CreateRequest}/>
                     <Route path='/request' component={Request}/>
+                    <Route path='/othersRequests' component={OthersRequests}/>
+                    <Route path='/approveRequest' component={ApproveRequest}/>
+                    <Route path='/rejectRequest' component={RejectRequest}/>
+                    <Route>
+                        <Redirect to="/"/>
+                    </Route>
+                </Switch>
+            </Layout>
+        );
+    }
+}
+
+class AccountingComponent extends Component {
+    static displayName = AccountingComponent.name;
+
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <Layout>
+                <Switch>
+                    <Route exact path="/" component={MyRequests}>
+                        {!AuthService.isLogged() && <Redirect to="/auth">Protected Page</Redirect>}
+                    </Route>
+                    <Route exact path='/auth' component={Authorization}/>
                     <Route path='/othersRequests' component={OthersRequests}/>
                     <Route path='/approveRequest' component={ApproveRequest}/>
                     <Route path='/rejectRequest' component={RejectRequest}/>

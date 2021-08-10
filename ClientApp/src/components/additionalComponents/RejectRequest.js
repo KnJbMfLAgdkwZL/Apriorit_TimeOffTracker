@@ -62,7 +62,7 @@ export class RejectRequest extends Component {
                                     onClick={this.sendRejectRequest}
                                     block
                                     color="danger">
-                                To Reject Page
+                                Reject Request
                             </Button>
                         </Col>
                     </Row>
