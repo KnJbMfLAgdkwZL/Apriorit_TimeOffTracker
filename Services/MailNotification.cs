@@ -43,19 +43,23 @@ namespace TimeOffTracker.Services
 
             var body =
                 $@"
-                Запрос на отпуск!
-                Кто: {request.User.SecondName} {request.User.FirstName}
-                Статус заявки: {stateDetailType.Type}
-                Причина заявки: {request.Reason}
-                Тип заявки: {requestType.Type}
-                Дата начала: {request.DateTimeFrom}
-                Дата конца : {request.DateTimeTo}
-                Роль на проекте: {projectRoleType.Type}
-                Обязанности: {request.ProjectRoleComment}
-                Подписавшие: {appr}
-                Должны подписать: {wait}
+                <b>Запрос на отпуск!</b> <br/>
 
-                Approve | Reject";
+                <b>Кто:</b> {request.User.SecondName} {request.User.FirstName} <br/>
+                <b>Статус заявки:</b> {stateDetailType.Type} <br/>
+                <b>Причина заявки:</b> {request.Reason} <br/>
+                <b>Тип заявки:</b> {requestType.Type} <br/>
+                <b>Дата начала:</b> {request.DateTimeFrom} <br/>
+                <b>Дата конца :</b> {request.DateTimeTo} <br/>
+                <b>Роль на проекте:</b> {projectRoleType.Type} <br/>
+                <b>Обязанности:</b> {request.ProjectRoleComment} <br/>
+                <b>Подписавшие:</b> {appr} <br/>
+                <b>Должны подписать:</b> {wait} <br/>
+
+                <a href='http://localhost:5000/approveRequest?id={request.Id}'>Approve</a> 
+                | 
+                <a href='http://localhost:5000/rejectRequest?id={request.Id}'>Reject</a> 
+            ";
 
             var userSignature = request.UserSignatures
                 .FirstOrDefault(us => us.Approved == false && us.NInQueue == 0);
@@ -91,17 +95,19 @@ namespace TimeOffTracker.Services
 
             var body =
                 $@"
-                Ваша Заявка Утверждена!
-                Кто: {request.User.SecondName} {request.User.FirstName}
-                Статус заявки: {stateDetailType.Type}
-                Причина заявки: {request.Reason}
-                Тип заявки: {requestType.Type}
-                Дата начала: {request.DateTimeFrom}
-                Дата конца : {request.DateTimeTo}
-                Роль на проекте: {projectRoleType.Type}
-                Обязанности: {request.ProjectRoleComment}
-                Подписавшие: {appr}
-                Должны подписать: {wait}";
+                <b>Ваша Заявка Утверждена!</b> <br/>
+
+                <b>Кто:</b> {request.User.SecondName} {request.User.FirstName} <br/>
+                <b>Статус заявки:</b> {stateDetailType.Type} <br/>
+                <b>Причина заявки:</b> {request.Reason} <br/>
+                <b>Тип заявки:</b> {requestType.Type} <br/>
+                <b>Дата начала:</b> {request.DateTimeFrom} <br/>
+                <b>Дата конца :</b> {request.DateTimeTo} <br/>
+                <b>Роль на проекте:</b> {projectRoleType.Type} <br/>
+                <b>Обязанности:</b> {request.ProjectRoleComment} <br/>
+                <b>Подписавшие:</b> {appr} <br/>
+                <b>Должны подписать:</b> {wait} <br/>
+            ";
 
             var mailAddress = new MailAddress(request.User.Email);
             _mail.SendEmail(mailAddress, subject, body);
@@ -132,17 +138,19 @@ namespace TimeOffTracker.Services
 
             var body =
                 $@"
-                Заявка Утверждена!
-                Кто: {request.User.SecondName} {request.User.FirstName}
-                Статус заявки: {stateDetailType.Type}
-                Причина заявки: {request.Reason}
-                Тип заявки: {requestType.Type}
-                Дата начала: {request.DateTimeFrom}
-                Дата конца : {request.DateTimeTo}
-                Роль на проекте: {projectRoleType.Type}
-                Обязанности: {request.ProjectRoleComment}
-                Подписавшие: {appr}
-                Должны подписать: {wait}";
+                <b>Заявка Утверждена!</b> <br/>
+
+                <b>Кто:</b> {request.User.SecondName} {request.User.FirstName} <br/>
+                <b>Статус заявки:</b> {stateDetailType.Type} <br/>
+                <b>Причина заявки:</b> {request.Reason} <br/>
+                <b>Тип заявки:</b> {requestType.Type} <br/>
+                <b>Дата начала:</b> {request.DateTimeFrom} <br/>
+                <b>Дата конца :</b> {request.DateTimeTo} <br/>
+                <b>Роль на проекте:</b> {projectRoleType.Type} <br/>
+                <b>Обязанности:</b> {request.ProjectRoleComment} <br/>
+                <b>Подписавшие:</b> {appr} <br/>
+                <b>Должны подписать:</b> {wait} <br/>
+            ";
 
             var accounting =
                 request.UserSignatures.FirstOrDefault(us => us.Approved && us.User.RoleId == (int)UserRoles.Accounting);
@@ -194,21 +202,24 @@ namespace TimeOffTracker.Services
 
             var body =
                 $@"
-                Ваша Заявка Отклонена!
-                Кто: {request.User.SecondName} {request.User.FirstName}
-                Статус заявки: {stateDetailType.Type}
-                Причина заявки: {request.Reason}
-                Тип заявки: {requestType.Type}
-                Дата начала: {request.DateTimeFrom}
-                Дата конца : {request.DateTimeTo}
-                Роль на проекте: {projectRoleType.Type}
-                Обязанности: {request.ProjectRoleComment}
-                Подписавшие: {appr}
-                Должны подписать: {wait}
-                Отклонена: {reje}
-                Причина отклонения: {reason}
+                <b>Ваша Заявка Отклонена! <br/>
 
-                Вы можете учесть замечания и оставить новую заявку.";
+                <b>Кто:</b> {request.User.SecondName} {request.User.FirstName} <br/>
+                <b>Статус заявки:</b> {stateDetailType.Type} <br/>
+                <b>Причина заявки:</b> {request.Reason} <br/>
+                <b>Тип заявки:</b> {requestType.Type} <br/>
+                <b>Дата начала:</b> {request.DateTimeFrom} <br/>
+                <b>Дата конца :</b> {request.DateTimeTo} <br/>
+                <b>Роль на проекте:</b> {projectRoleType.Type} <br/>
+                <b>Обязанности:</b> {request.ProjectRoleComment} <br/>
+                <b>Подписавшие:</b> {appr} <br/>
+                <b>Должны подписать:</b> {wait} <br/>
+                
+                <b>Отклонена:</b> {reje} <br/>
+                <b>Причина отклонения:</b> {reason} <br/>
+
+                Вы можете учесть замечания и оставить новую заявку.
+            ";
 
             var mailAddress = new MailAddress(request.User.Email);
             _mail.SendEmail(mailAddress, subject, body);
@@ -255,19 +266,22 @@ namespace TimeOffTracker.Services
 
             var body =
                 $@"
-                Заявка Отклонена!
-                Кто: {request.User.SecondName} {request.User.FirstName}
-                Статус заявки: {stateDetailType.Type}
-                Причина заявки: {request.Reason}
-                Тип заявки: {requestType.Type}
-                Дата начала: {request.DateTimeFrom}
-                Дата конца : {request.DateTimeTo}
-                Роль на проекте: {projectRoleType.Type}
-                Обязанности: {request.ProjectRoleComment}
-                Подписавшие: {appr}
-                Должны подписать: {wait}
-                Отклонена: {reje}
-                Причина отклонения: {reason}";
+                <b>Заявка Отклонена! <br/>
+
+                <b>Кто:</b> {request.User.SecondName} {request.User.FirstName} <br/>
+                <b>Статус заявки:</b> {stateDetailType.Type} <br/>
+                <b>Причина заявки:</b> {request.Reason} <br/>
+                <b>Тип заявки:</b> {requestType.Type} <br/>
+                <b>Дата начала:</b> {request.DateTimeFrom} <br/>
+                <b>Дата конца :</b> {request.DateTimeTo} <br/>
+                <b>Роль на проекте:</b> {projectRoleType.Type} <br/>
+                <b>Обязанности:</b> {request.ProjectRoleComment} <br/>
+                <b>Подписавшие:</b> {appr} <br/>
+                <b>Должны подписать:</b> {wait} <br/>
+
+                <b>Отклонена:</b> {reje} <br/>
+                <b>Причина отклонения:</b> {reason} <br/>
+            ";
 
             var userSignatures = request.UserSignatures.Where(us => us.Approved).ToList();
             foreach (var mailAddress in userSignatures.Select(us => new MailAddress(us.User.Email)))

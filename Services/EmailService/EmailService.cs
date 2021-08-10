@@ -21,7 +21,7 @@ namespace TimeOffTracker.Services.EmailService
             var from = new MailAddress(_emailOptions.SmtpUser);
             var message = new MailMessage(from, to)
             {
-                Subject = subject, Body = html
+                Subject = subject, Body = html, IsBodyHtml = true
             };
 
             var smptClient = new SmtpClient(_emailOptions.SmtpHost, Convert.ToInt32(_emailOptions.SmtpPort))
