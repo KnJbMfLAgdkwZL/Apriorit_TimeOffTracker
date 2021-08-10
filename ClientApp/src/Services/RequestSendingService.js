@@ -45,6 +45,29 @@
             .catch(error => console.error(error));
     }
 
+    static async sendPutRequestUnauthorized(url, body) {
+        const requestOptions = {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
+
+    static async sendPutRequestAuthorized(url, body) {
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
+            body: JSON.stringify(body)
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
+
     static async sendGetRequestUnauthorized(url) {
         return await fetch(url)
             .catch(error => console.error(error));
@@ -57,6 +80,27 @@
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem("token")
             }
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
+
+    static async sendDeleteRequestUnauthorized(url) {
+        const requestOptions = {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+        };
+        return await fetch(url, requestOptions)
+            .catch(error => console.error(error));
+    }
+
+    static async sendDeleteRequestAuthorized(url) {
+        const requestOptions = {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
         };
         return await fetch(url, requestOptions)
             .catch(error => console.error(error));

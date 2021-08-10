@@ -9,15 +9,15 @@ import DataGrid from "react-data-grid";
 import {Link} from "react-router-dom";
 import {StateDetailts} from "../Enums/StateDetailts";
 import {RequestTypes} from "../Enums/RequestTypes";
-import {DatesComparer} from "../Helpers/DatesComparer";
 
 const columns = [
-    {key: 'state', name: 'state'},
-    {key: 'type', name: 'type'},
-    {key: 'dateFrom', name: 'dateFrom'},
-    {key: 'dateTo', name: 'dateTo'},
-    {key: 'comment', name: 'my comment'},
-    {key: 'details', name: 'state details'},
+    {key: 'id', name: 'id', width: '5%'},
+    {key: 'state', name: 'state', width: '9%'},
+    {key: 'type', name: 'type', width: '15%'},
+    {key: 'dateFrom', name: 'dateFrom', width: '10%'},
+    {key: 'dateTo', name: 'dateTo', width: '10%'},
+    {key: 'comment', name: 'my comment', width: '18%'},
+    {key: 'details', name: 'state details', width: '30%'},
 ];
 
 const stateOptions = [
@@ -49,13 +49,14 @@ export class MyRequests extends Component {
         super(props);
 
         this.state = {
-            selectedOptionDateFrom: new Date(),
-            selectedOptionDateTo: new Date(),
+            selectedOptionDateFrom: new Date().setMonth(new Date().getMonth() - 2),
+            selectedOptionDateTo: new Date().setMonth(new Date().getMonth() + 2),
             selectedOptionState: null,
             selectedOptionType: null,
+            selectedOptionId: null,
             rows: [
                 {
-                    id: "",
+                    id: "loading...",
                     state: "loading...",
                     type: 'loading...',
                     dateFrom: "loading...",
@@ -77,6 +78,7 @@ export class MyRequests extends Component {
             loading: false,
             error: false,
             chosenRequest: null,
+            idOptions: [{value: null, label: 'Any'}],
         };
         
         this._filter = this._filter.bind(this);
@@ -89,7 +91,7 @@ export class MyRequests extends Component {
                     <Row>
                         <Col>
                             <center><p><strong>
-                                This year statistics
+                                New Or View
                             </strong></p></center>
                         </Col>
                     </Row>
@@ -105,16 +107,17 @@ export class MyRequests extends Component {
                             </Link>
                         </Col>
                         <Col>
-                            <center><p><strong>Chosen request (comment): </strong>{this.state.chosenRequest?.comment}</p></center>
+                            <center><p><strong>Chosen request (by id): </strong>{this.state.chosenRequest?.id}</p></center>
                         </Col>
                         <Col>
-                            <Button
-                                // onClick={this._newRequestChangeState}
-                                outline
-                                block
-                                color="info">
-                                View Chosen Request
-                            </Button>
+                            <Link to={"/request?id=" + this.state.chosenRequest?.id} style={{textDecoration: 'none'}}>
+                                <Button
+                                    outline
+                                    block
+                                    color="info">
+                                    View Chosen Request
+                                </Button>
+                            </Link>
                         </Col>
                     </Row>
                 </Container>
@@ -131,7 +134,7 @@ export class MyRequests extends Component {
                             <center><p>Dates From / To</p></center>
                         </Col>
                         <Col>
-                            <center><p>State / Type</p></center>
+                            <center><p>State / Type / Id</p></center>
                         </Col>
                         <Col/>
                     </Row>
@@ -163,6 +166,12 @@ export class MyRequests extends Component {
                                 value={this.state.selectedOptionType}
                                 onChange={this.handleChangeType}
                                 options={typeOptions}
+                                className="mt-2"
+                            />
+                            <Select
+                                value={this.state.selectedOptionId}
+                                onChange={this.handleChangeId}
+                                options={this.state.idOptions}
                                 className="mt-2"
                             />
                         </Col>
@@ -222,6 +231,7 @@ export class MyRequests extends Component {
             loading: true,
             selectedOptionState: stateOptions[0],
             selectedOptionType: typeOptions[0],
+            selectedOptionId: this.state.idOptions[0],
         });
         await RequestSendingService.sendGetRequestAuthorized(URL.url + "Employee/GetDays")
             .then(async response => {
@@ -264,6 +274,9 @@ export class MyRequests extends Component {
                             details: this.buildDetails(request.userSignature),
                             visible: true
                         })
+                        this.state.idOptions.push({
+                            value: request.id, label: request.id,
+                        })
                     })
                     this.setState({
                         loading: false,
@@ -296,6 +309,10 @@ export class MyRequests extends Component {
         this.setState({selectedOptionState});
     };
 
+    handleChangeId = selectedOptionId => {
+        this.setState({selectedOptionId});
+    };
+
     handleChangeType = selectedOptionType => {
         this.setState({selectedOptionType});
     };
@@ -311,6 +328,12 @@ export class MyRequests extends Component {
             }
 
             if ((this.state.selectedOptionType.value !== null) && row.type !== RequestTypes[this.state.selectedOptionType.value]) {
+                result = result && false;
+            } else {
+                result = result && true;
+            }
+
+            if ((this.state.selectedOptionId.value !== null) && row.id !== this.state.selectedOptionId.value) {
                 result = result && false;
             } else {
                 result = result && true;
@@ -334,12 +357,12 @@ export class MyRequests extends Component {
         if (userSignatures.filter(us => us.approved === true && us.deleted === false).length > 0) {
             result += "Approved: ";
 
-            userSignatures.forEach(us => {
-                result += us.user.firstName + " " + us.user.secondName + ", "
+            userSignatures.filter(us => us.approved === true && us.deleted === false).forEach(us => {
+                result += us.user.secondName + " " + us.user.firstName[0] + ", "
             });
         }
         
-        if (result.length > 30) {
+        if (result.length > 50) {
             return "Its too long."
         } else {
             return result;
