@@ -210,7 +210,8 @@ export class OthersRequests extends Component {
                     console.log(data);
                     this.state.rows.pop();
                     data.requests.filter(request => {
-                        return request.userSignature[0].nInQueue === 0 && request.stateDetailId === 2 &&
+                        return request.userSignature[0].nInQueue === 0 && 
+                            (request.stateDetailId === 1 || request.stateDetailId === 2) &&
                             request.userSignature[0].approved === false && request.userSignature[0].deleted === false
                     }).forEach(request => {
                         this.state.rows.push({

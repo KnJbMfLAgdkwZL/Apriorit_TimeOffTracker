@@ -20,6 +20,7 @@ export class RejectRequest extends Component {
         }
 
         this.sendRejectRequest = this.sendRejectRequest.bind(this);
+        this._handleTextFiledReasonChange = this._handleTextFiledReasonChange.bind(this);
     }
 
     render() {
