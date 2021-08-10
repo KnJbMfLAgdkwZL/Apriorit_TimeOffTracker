@@ -10,6 +10,9 @@ import {CreateUser} from "./components/additionalComponents/CreateUser";
 import {MyRequests} from "./components/MyRequests";
 import {Request} from "./components/additionalComponents/Request";
 import {CreateRequest} from "./components/additionalComponents/CreateRequest";
+import {OthersRequests} from "./components/OthersRequests";
+import {ApproveRequest} from "./components/additionalComponents/ApproveRequest";
+import {RejectRequest} from "./components/additionalComponents/RejectRequest";
 
 
 export default class App extends Component {
@@ -33,6 +36,11 @@ export default class App extends Component {
             case "Employee": {
                 return (
                     <EmployeeComponent/>
+                );
+            }
+            case "Manager": {
+                return (
+                    <ManagerComponent/>
                 );
             }
             default: {
@@ -91,6 +99,35 @@ class EmployeeComponent extends Component {
                     <Route exact path='/auth' component={Authorization}/>
                     <Route exact path='/createRequest' component={CreateRequest}/>
                     <Route path='/request' component={Request}/>
+                    <Route>
+                        <Redirect to="/"/>
+                    </Route>
+                </Switch>
+            </Layout>
+        );
+    }
+}
+
+class ManagerComponent extends Component {
+    static displayName = ManagerComponent.name;
+
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <Layout>
+                <Switch>
+                    <Route exact path="/" component={MyRequests}>
+                        {!AuthService.isLogged() && <Redirect to="/auth">Protected Page</Redirect>}
+                    </Route>
+                    <Route exact path='/auth' component={Authorization}/>
+                    <Route exact path='/createRequest' component={CreateRequest}/>
+                    <Route path='/request' component={Request}/>
+                    <Route path='/othersRequests' component={OthersRequests}/>
+                    <Route path='/approveRequest' component={ApproveRequest}/>
+                    <Route path='/rejectRequest' component={RejectRequest}/>
                     <Route>
                         <Redirect to="/"/>
                     </Route>
