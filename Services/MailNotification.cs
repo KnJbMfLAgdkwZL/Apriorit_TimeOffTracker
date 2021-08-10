@@ -170,7 +170,18 @@ namespace TimeOffTracker.Services
             var waiting = request.UserSignatures.Where(us => us.Approved == false)
                 .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
 
-            var rejectedUs = request.UserSignatures.Where(us => us.Approved == false && us.Reason.Length > 0).ToList();
+            var rejectedUs = new List<UserSignature>();
+            foreach (var us in request.UserSignatures)
+            {
+                if (us.Reason != null)
+                {
+                    if (us.Reason.Length > 0)
+                    {
+                        rejectedUs.Add(us);
+                    }
+                }
+            }
+
             var rejected = rejectedUs.Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
 
             var appr = string.Join(", ", approved);
@@ -220,7 +231,18 @@ namespace TimeOffTracker.Services
             var waiting = request.UserSignatures.Where(us => us.Approved == false)
                 .Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
 
-            var rejectedUs = request.UserSignatures.Where(us => us.Approved == false && us.Reason.Length > 0).ToList();
+            var rejectedUs = new List<UserSignature>();
+            foreach (var us in request.UserSignatures)
+            {
+                if (us.Reason != null)
+                {
+                    if (us.Reason.Length > 0)
+                    {
+                        rejectedUs.Add(us);
+                    }
+                }
+            }
+
             var rejected = rejectedUs.Select(us => us.User.SecondName + " " + us.User.FirstName).ToList();
 
             var appr = string.Join(", ", approved);

@@ -98,7 +98,7 @@ namespace TimeOffTracker.Controllers
                 await userSignatureRepository.SelectAllNotApprovedByIdAsync(userSignature.RequestId, token);
 
             var requestFull = await requestRepository.SelectFullAsync(request.Id, token);
-            
+
             var req = await requestRepository.SelectNotIncludeAsync(request.Id, token);
 
             if (userSignatures.Count <= 0)
@@ -114,7 +114,7 @@ namespace TimeOffTracker.Controllers
             {
                 req.StateDetailId = (int)StateDetails.InProgress;
                 await requestRepository.UpdateAsync(req, token);
-                
+
                 _mailNotification.SendRequest(requestFull);
             }
 
@@ -123,7 +123,7 @@ namespace TimeOffTracker.Controllers
 
         /// <summary>
         /// Отклонить заявку на отпуск
-        /// GET: /Manager/RejectRequest?id=19&reason=to long
+        /// POST: /Manager/RejectRequest?id=19
         /// Header
         /// {
         ///     Authorization: Bearer {TOKEN}
@@ -131,14 +131,20 @@ namespace TimeOffTracker.Controllers
         /// </summary>
         /// <param name="id">ид запроса</param>
         /// <param name="reason">причина отказа</param>
+        /// <param name="rejectReasonDto">
+        /// Body
+        /// {
+        ///     "reason": "To long"
+        /// }
+        /// </param>
         /// <param name="token"></param>
         /// <returns></returns>
         [ProducesResponseType(200, Type = typeof(string))]
         [ProducesResponseType(404)]
-        [HttpGet]
+        [HttpPost]
         public async Task<ActionResult<string>> RejectRequest(
             [FromQuery(Name = "id")] int id,
-            [FromQuery(Name = "reason")] string reason,
+            [FromBody] RejectReasonDto rejectReasonDto,
             CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
@@ -174,7 +180,7 @@ namespace TimeOffTracker.Controllers
                 return BadRequest($"Request.StateDetail: {state.Type}");
             }
 
-            if (string.IsNullOrEmpty(reason))
+            if (string.IsNullOrEmpty(rejectReasonDto.Reason))
             {
                 return BadRequest("Reason not set");
             }
@@ -182,7 +188,7 @@ namespace TimeOffTracker.Controllers
             request.StateDetailId = (int)StateDetails.Rejected;
             await requestRepository.UpdateAsync(request, token);
 
-            userSignature.Reason = reason;
+            userSignature.Reason = rejectReasonDto.Reason;
             await userSignatureRepository.UpdateAsync(userSignature, token);
 
             //Send email to Accountant about Rejecting
